@@ -1,23 +1,45 @@
 "use client";
 
 import { useGetCharactersPerLine } from "@/modules/hooks";
-import { getParagraphArray } from "@/modules/util";
-import React from "react";
+import { characterState } from "@/modules/types";
+import { getParagraphArray, getWordsArray } from "@/modules/util";
+import React, { useEffect, useState } from "react";
 
 const Page = () => {
+  const [wordsArray, setWordsArray] = useState<string[]>([]);
+  const [paragraphArray, setParagraphArray] = useState<string[][]>([]);
   const charsPerLine = useGetCharactersPerLine();
-  const paragraphArray = getParagraphArray(charsPerLine);
+  const [characterState, setCharacterState] = useState<characterState[]>([]);
+
+  useEffect(() => {
+    setWordsArray(getWordsArray());
+  }, []);
+
+  useEffect(() => {
+    setParagraphArray(getParagraphArray(wordsArray, charsPerLine));
+  }, [wordsArray, charsPerLine]);
+
   return (
     <div className="flex flex-col items-center justify-center h-screen gap-4">
       <h1 className="text-2xl font-bold">Type Test</h1>
-      <div className="flex flex-col items-center justify-center gap-1">
-        {paragraphArray.map((line, index) => (
+      <div className="flex flex-col items-center justify-center gap-1 select-none">
+        {paragraphArray.map((line, lineIndex) => (
           <div
-            key={index}
+            key={lineIndex}
             className="flex items-start self-baseline justify-start text-xl"
           >
-            {line.map((word, index) => (
-              <span key={index}>{word} &nbsp;</span>
+            {line.map((word, wordIndex) => (
+              <span key={wordIndex}>
+                {Array.from(word).map((char, charIndex) => (
+                  <span
+                    key={charIndex}
+                    id={`${lineIndex}${wordIndex}${charIndex}`}
+                  >
+                    {char}
+                  </span>
+                ))}
+                &nbsp;
+              </span>
             ))}
           </div>
         ))}
