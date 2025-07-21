@@ -7,10 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\" \"src/**/*.{js,jsx,ts,tsx}\" --fix",
-    "precommit": "npm run lint && npm run typecheck && git add ."
+    "typecheck": "tsc -p ./tsconfig.json --noEmit",
+    "precommit": "npm run lint && npm run typecheck && git add .",
+    "prepare": "husky install"
   },
   "dependencies": {
     "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
     "next": "15.4.2",
     "react": "19.1.0",
     "react-dom": "19.1.0"
@@ -28,5 +31,8 @@
     "eslint-config-next": "15.4.2",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": "npm run lint"
   }
 }
