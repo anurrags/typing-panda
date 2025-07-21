@@ -6,25 +6,27 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\" \"src/**/*.{js,jsx,ts,tsx}\" --fix",
+    "precommit": "npm run lint && npm run typecheck && git add ."
   },
   "dependencies": {
+    "husky": "^9.1.7",
+    "next": "15.4.2",
     "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "next": "15.4.2"
+    "react-dom": "19.1.0"
   },
   "engines": {
     "node": "20.x"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.4.2",
-    "@eslint/eslintrc": "^3"
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }
