@@ -1,7 +1,13 @@
+"use client";
+import { TypingTest } from "@/components";
+
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      Home Page
+    <div>
+      <div className="flex flex-col items-center justify-center h-screen">
+        <h1 className="text-2xl mb-4 font-bold">Typing Test</h1>
+        <TypingTest />
+      </div>
     </div>
   );
 }
