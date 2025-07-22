@@ -1,6 +1,7 @@
 import Image from "next/image";
+import React from "react";
 
-const Header = () => {
+const Header: React.FC = () => {
   return (
     <div className="flex justify-between items-center py-4 px-12">
       <div className="flex items-center gap-8">
