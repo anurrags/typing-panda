@@ -5,8 +5,13 @@ import { getWordsArray } from "../modules/util";
 const TypingTest: React.FC = () => {
   const [wordsArray, setWordsArray] = useState<string[]>([]);
   const [userInput, setUserInput] = useState<string>("");
+  const [startedTyping, setStartedTyping] = useState<boolean>(false);
+  const [wpm, setWpm] = useState<number>(0);
+  const [accuracy, setAccuracy] = useState<number>(0);
+  const [time, setTime] = useState<number>(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const paragraph = wordsArray.join(" ");
 
   const currentIndex = userInput.length;
 
@@ -33,6 +38,9 @@ const TypingTest: React.FC = () => {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key.length === 1) {
+        if (!startedTyping) {
+          setStartedTyping(true);
+        }
         setUserInput((prev: string) => prev + e.key);
         e.preventDefault();
       } else if (e.key === "Backspace") {
@@ -43,7 +51,40 @@ const TypingTest: React.FC = () => {
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, []);
+  });
+
+  useEffect(() => {
+    const calculateWpm = () => {
+      const wordsTyped = userInput.split(" ").length;
+      const timeInMinutes = time / 60;
+      const wpm =
+        timeInMinutes === 0 ? 0 : Math.round(wordsTyped / timeInMinutes);
+      setWpm(wpm);
+    };
+
+    const calculateAccuracy = () => {
+      const correctChars = userInput
+        .split("")
+        .filter((char, index) => char === paragraph[index]).length;
+      const accuracy =
+        userInput.length === 0
+          ? 0
+          : Math.round((correctChars / userInput.length) * 100);
+      setAccuracy(accuracy);
+    };
+
+    calculateWpm();
+    calculateAccuracy();
+  }, [userInput, wordsArray, time, paragraph]);
+
+  useEffect(() => {
+    if (startedTyping) {
+      const interval = setInterval(() => {
+        setTime((prev) => prev + 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [startedTyping]);
 
   let globalIndex = 0;
 
@@ -51,16 +92,16 @@ const TypingTest: React.FC = () => {
     <div className="flex border pt-8 w-[80vw] flex-col gap-8 items-center justify-center bg-dark-1 border-cyan-2 rounded-lg shadow-lg">
       <div className="flex items-center gap-16 text-4xl">
         <div className="flex items-center gap-2">
-          <span className="text-cyan-1 ">0</span>
+          <span className="text-cyan-1 ">{wpm}</span>
           <span className="text-grey-2">WPM</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-cyan-1">0</span>
+          <span className="text-cyan-1">{accuracy}</span>
           <span>%</span>
           <span className="text-grey-2">Acc</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-cyan-1">0</span>
+          <span className="text-cyan-1">{time}</span>
           <span className="text-grey-2">s</span>
         </div>
       </div>
