@@ -1,13 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #7c7c7c;
+  --color-cyan-1: #6ee7b7;
+  --color-cyan-2: #2dd4bf;
+  --color-dark-1: #232429;
+  --color-green-1: #6ee7b7;
+  --color-grey-1: #c1c2c5;
+  --color-grey-2: #6b7280;
+  --color-light-1: #e2e8f0;
+  --color-red-1: #f87171;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -21,19 +25,21 @@
 
 body {
   background: var(--background);
-  color: var(--color-primary);
-  font-family: Arial, Helvetica, sans-serif;
+  color: white;
+  font-family: "Inter", sans-serif;
 }
 
 @theme {
-  --color-primary: #c1c2c5;
-  --color-secondary: #6ee7b7;
-  --color-wrong-char: #f87171;
-  --color-correct-char: #e2e8f0;
-  --color-bright-green: #6ee7b7;
-  --color-focus-area: #232429;
-  --color-cyan-primary: #2dd4bf;
-  --animate-blink: blink 1s infinite;
+  --color-grey-1: var(--color-grey-1);
+  --color-cyan-1: var(--color-cyan-1);
+  --color-red-1: var(--color-red-1);
+  --color-light-1: var(--color-light-1);
+  --color-green-1: var(--color-green-1);
+  --color-dark-1: var(--color-dark-1);
+  --color-cyan-2: var(--color-cyan-2);
+  --color-grey-2: var(--color-grey-2);
+
+  --animate-blink: blink 1.2s infinite;
   @keyframes blink {
     0%,
     100% {
@@ -48,5 +54,11 @@ body {
 @layer components {
   .caret {
     @apply inline-block w-[2px] h-8 bg-white animate-blink absolute;
+  }
+}
+
+@base {
+  ul {
+    @apply list-none;
   }
 }

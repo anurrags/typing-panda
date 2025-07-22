@@ -14,6 +14,8 @@ const TypingTest: React.FC = () => {
     setWordsArray(getWordsArray());
   }, []);
 
+  // Scroll to the caret when it's at the bottom of the container
+  // This help in auto scrolling the lines when the caret is at the bottom of the container
   useEffect(() => {
     const container = containerRef.current;
     if (container) {
@@ -30,11 +32,6 @@ const TypingTest: React.FC = () => {
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) {
-        // Let shortcuts work!
-        return;
-      }
-
       if (e.key.length === 1) {
         setUserInput((prev: string) => prev + e.key);
         e.preventDefault();
@@ -51,15 +48,30 @@ const TypingTest: React.FC = () => {
   let globalIndex = 0;
 
   return (
-    <div className="flex border w-[80vw] flex-col items-center justify-center bg-focus-area border-cyan-primary rounded-lg shadow-lg ">
+    <div className="flex border pt-8 w-[80vw] flex-col gap-8 items-center justify-center bg-dark-1 border-cyan-2 rounded-lg shadow-lg">
+      <div className="flex items-center gap-16 text-4xl">
+        <div className="flex items-center gap-2">
+          <span className="text-cyan-1 ">0</span>
+          <span className="text-grey-2">WPM</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-cyan-1">0</span>
+          <span>%</span>
+          <span className="text-grey-2">Acc</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-cyan-1">0</span>
+          <span className="text-grey-2">s</span>
+        </div>
+      </div>
       <div
         ref={containerRef}
-        className="  gap-x-2  flex flex-wrap h-36 overflow-y-hidden  whitespace-pre-wrap leading-relaxed  "
+        className="flex flex-wrap h-36 pl-4 overflow-y-hidden whitespace-pre-wrap leading-relaxed text-grey-2 font-mono"
       >
         {wordsArray.map((word, wordIndx) => (
           <div
             key={wordIndx}
-            className="text-3xl tracking-wider leading-8 whitespace-nowrap m-2 inline-flex"
+            className="text-3xl tracking-wider leading-8 whitespace-nowrap my-2 inline-flex"
           >
             {/* Render each character in word */}
             {Array.from(word).map((char, charIndx) => {
@@ -69,19 +81,14 @@ const TypingTest: React.FC = () => {
               if (typedChar !== undefined) {
                 status = typedChar === char ? "correct" : "incorrect";
               }
-
               const isCaret = globalIndex === currentIndex;
 
               const output = (
                 <span key={charIndx} className="relative">
                   {isCaret && <Carat />}
                   <span
-                    className={`${
-                      status === "correct"
-                        ? "text-green-500"
-                        : status === "incorrect"
-                        ? "text-red-500"
-                        : "text-gray-400"
+                    className={`${status === "incorrect" && "text-red-1"} ${
+                      status === "correct" && "text-light-1"
                     }`}
                   >
                     {char}
@@ -96,29 +103,12 @@ const TypingTest: React.FC = () => {
             {/* Render a space after the word if not the last word */}
             {wordIndx < wordsArray.length - 1 &&
               (() => {
-                const typedChar = userInput[globalIndex];
-                let status: "correct" | "incorrect" | "notTyped" = "notTyped";
-
-                if (typedChar !== undefined) {
-                  status = typedChar === " " ? "correct" : "incorrect";
-                }
-
                 const isCaret = globalIndex === userInput.length;
 
                 const space = (
                   <span key={`space-${wordIndx}`} className="relative">
                     {isCaret && <Carat />}
-                    <span
-                      className={`${
-                        status === "correct"
-                          ? "text-green-500"
-                          : status === "incorrect"
-                          ? "text-red-500"
-                          : "text-gray-400"
-                      }`}
-                    >
-                      {"\u00A0"}
-                    </span>
+                    <span>{"\u00A0"}</span>
                   </span>
                 );
 
@@ -129,12 +119,7 @@ const TypingTest: React.FC = () => {
         ))}
 
         {/* Edge case: caret at very end */}
-        {globalIndex === currentIndex && (
-          <span
-            id="caret"
-            className="inline-block w-px h-6 bg-white animate-pulse"
-          />
-        )}
+        {wordsArray.length > 0 && globalIndex === currentIndex && <Carat />}
       </div>
     </div>
   );
