@@ -1,4 +1,5 @@
 import { words } from "@/data/words";
+import { ParagraphState } from "../types";
 
 export const getWordsArray = () => {
   let charCount = 0;
@@ -6,6 +7,7 @@ export const getWordsArray = () => {
   while (charCount < 1000) {
     const word = words[Math.floor(Math.random() * words.length)];
     if (charCount + word.length > 1000) break;
+
     wordsArray.push(word);
     charCount += word.length + 1;
   }
@@ -15,17 +17,20 @@ export const getParagraphArray = (
   wordsArray: string[],
   charsPerLine: number
 ) => {
-  const paragraphArray: string[][] = [];
+  const paragraphArray: ParagraphState[] = [];
   let charCount = 0;
-  let line: string[] = [];
+  let currentLine = 0;
   for (let i = 0; i < wordsArray.length; i++) {
-    const word = wordsArray[i];
+    const word = wordsArray[i].split("");
+
     if (charCount + word.length > charsPerLine) {
-      paragraphArray.push(line);
-      line = [];
+      currentLine++;
       charCount = 0;
     }
-    line.push(word);
+    word.map((char) => {
+      paragraphArray.push({ char: char, line: currentLine });
+    });
+    paragraphArray.push({ char: " ", line: currentLine });
     charCount += word.length + 1;
   }
   return paragraphArray;

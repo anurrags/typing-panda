@@ -1,2 +1,2 @@
-export * from "./useGetWordsPerLine";
+export * from "./useGetCharactersPerLine";
 export * from "./useScreenSize";
