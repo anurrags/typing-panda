@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import Carat from "./Carat";
 import { getWordsArray } from "../modules/util";
+import { Carat } from "./";
 
 const TypingTest: React.FC = () => {
   const [wordsArray, setWordsArray] = useState<string[]>([]);
