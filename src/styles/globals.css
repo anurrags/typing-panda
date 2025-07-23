@@ -53,7 +53,7 @@ body {
 
 @layer components {
   .caret {
-    @apply inline-block w-[2px] h-8 bg-white animate-blink absolute;
+    @apply animate-blink absolute inline-block h-8 w-[2px] bg-white;
   }
 }
 

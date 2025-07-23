@@ -89,10 +89,10 @@ const TypingTest: React.FC = () => {
   let globalIndex = 0;
 
   return (
-    <div className="flex border pt-8 w-[80vw] flex-col gap-8 items-center justify-center bg-dark-1 border-cyan-2 rounded-lg shadow-lg">
+    <div className="bg-dark-1 border-cyan-2 flex w-[80vw] flex-col items-center justify-center gap-8 rounded-lg border px-6 py-12 shadow-lg">
       <div className="flex items-center gap-16 text-4xl">
         <div className="flex items-center gap-2">
-          <span className="text-cyan-1 ">{wpm}</span>
+          <span className="text-cyan-1">{wpm}</span>
           <span className="text-grey-2">WPM</span>
         </div>
         <div className="flex items-center gap-2">
@@ -107,12 +107,12 @@ const TypingTest: React.FC = () => {
       </div>
       <div
         ref={containerRef}
-        className="flex flex-wrap h-36 pl-4 overflow-y-hidden whitespace-pre-wrap leading-relaxed text-grey-2 font-mono"
+        className="text-grey-2 flex h-36 flex-wrap overflow-y-hidden font-mono leading-relaxed whitespace-pre-wrap"
       >
         {wordsArray.map((word, wordIndx) => (
           <div
             key={wordIndx}
-            className="text-3xl tracking-wider leading-8 whitespace-nowrap my-2 inline-flex"
+            className="my-2 inline-flex text-3xl leading-8 tracking-wider whitespace-nowrap"
           >
             {/* Render each character in word */}
             {Array.from(word).map((char, charIndx) => {

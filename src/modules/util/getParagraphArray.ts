@@ -15,7 +15,7 @@ export const getWordsArray = () => {
 };
 export const getParagraphArray = (
   wordsArray: string[],
-  charsPerLine: number
+  charsPerLine: number,
 ) => {
   const paragraphArray: ParagraphState[] = [];
   let charCount = 0;
