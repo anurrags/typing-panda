@@ -1,8 +1,10 @@
 "use client";
 
 import { useTabStore } from "@/store";
-import Image from "next/image";
 import React from "react";
+import Image from "next/image";
+import ProfileImage from "@/assets/profile-white.svg";
+import SettingImage from "@/assets/setting-white.svg";
 
 const Header: React.FC = () => {
   const { tab, setTab } = useTabStore((state) => state);
@@ -44,11 +46,11 @@ const Header: React.FC = () => {
       </div>
       <div>
         <ul className="flex items-center gap-4">
-          <li>
-            <Image src="/setting-white.svg" alt="icon" width={32} height={32} />
+          <li className="cursor-pointer">
+            <SettingImage className="hover:stroke-cyan-2 h-6 w-6" />
           </li>
-          <li>
-            <Image src="/profile-white.svg" alt="icon" width={32} height={32} />
+          <li className="cursor-pointer">
+            <ProfileImage className="hover:stroke-cyan-2 h-6 w-6" />
           </li>
         </ul>
       </div>

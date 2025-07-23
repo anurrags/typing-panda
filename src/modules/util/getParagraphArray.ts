@@ -1,6 +1,7 @@
-import { words } from "@/data/words";
+import englishWords from "@/data/english_1k.json";
 import { ParagraphState } from "../types";
 
+const words = englishWords.words;
 export const getWordsArray = () => {
   let charCount = 0;
   const wordsArray: string[] = [];
@@ -13,6 +14,7 @@ export const getWordsArray = () => {
   }
   return wordsArray;
 };
+
 export const getParagraphArray = (
   wordsArray: string[],
   charsPerLine: number,
