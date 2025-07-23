@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+:root {
+  --color-cyan-1: #6ee7b7;
+  --color-cyan-2: #2dd4bf;
+  --color-dark-1: #232429;
+  --color-green-1: #6ee7b7;
+  --color-grey-1: #c1c2c5;
+  --color-grey-2: #6b7280;
+  --color-light-1: #e2e8f0;
+  --color-red-1: #f87171;
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1a1b1e;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: white;
+  font-family: "Inter", sans-serif;
+}
+
+@theme {
+  --color-grey-1: var(--color-grey-1);
+  --color-cyan-1: var(--color-cyan-1);
+  --color-red-1: var(--color-red-1);
+  --color-light-1: var(--color-light-1);
+  --color-green-1: var(--color-green-1);
+  --color-dark-1: var(--color-dark-1);
+  --color-cyan-2: var(--color-cyan-2);
+  --color-grey-2: var(--color-grey-2);
+
+  --animate-blink: blink 1.2s infinite;
+  @keyframes blink {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
+  }
+}
+
+@layer components {
+  .caret {
+    @apply animate-blink absolute inline-block h-8 w-[2px] bg-white;
+  }
+}
+
+@base {
+  ul {
+    @apply list-none;
+  }
+}
