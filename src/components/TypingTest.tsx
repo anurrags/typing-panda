@@ -10,23 +10,19 @@ import { getWordsArray } from "../modules/util";
 import { BlurOverlay, Carat, CharacterRenderer } from "./";
 import { TestStats } from "@/modules/types";
 import { ArrowPathIcon } from "@heroicons/react/20/solid";
-import { useTestDurationStore } from "@/store";
-
-// Better TypeScript interfaces
-interface TypingTestProps {
-  testDuration?: number;
-}
+import { useTestDataStore, useTestDurationStore } from "@/store";
 
 interface TestState {
   wordsArray: string[];
   userInput: string;
 }
 
-const TypingTest: React.FC<TypingTestProps> = () => {
+const TypingTest: React.FC = () => {
   const { testDuration } = useTestDurationStore();
+  const { testStarted, testEnded, setTestStarted, setTestEnded } =
+    useTestDataStore();
   const [time, setTime] = useState(0);
-  const [testStarted, setTestStarted] = useState(false);
-  const [testEnded, setTestEnded] = useState(false);
+  const [countdown, setCountdown] = useState(testDuration.value);
   const [testState, setTestState] = useState<TestState>({
     wordsArray: [],
     userInput: "",
@@ -48,6 +44,7 @@ const TypingTest: React.FC<TypingTestProps> = () => {
 
   const typingContainerRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const prevInputLengthRef = useRef(0);
 
   const paragraph = testState.wordsArray.join(" ");
@@ -60,6 +57,12 @@ const TypingTest: React.FC<TypingTestProps> = () => {
       wordsArray: getWordsArray(),
     }));
   }, []);
+
+  useEffect(() => {
+    if (testDuration.type === "time" && !testEnded) {
+      setCountdown(testDuration.value);
+    }
+  }, [testDuration, testEnded]);
 
   // Memoized statistics calculation
   const currentStats = useMemo(() => {
@@ -96,6 +99,12 @@ const TypingTest: React.FC<TypingTestProps> = () => {
   // Timer management
   useEffect(() => {
     if (testStarted && !testEnded) {
+      if (testDuration.type === "time") {
+        countdownIntervalRef.current = setInterval(() => {
+          setCountdown((prev) => prev - 1);
+        }, 1000);
+      }
+
       intervalRef.current = setInterval(() => {
         setTime((prev) => {
           const newTime = prev + 1;
@@ -110,11 +119,18 @@ const TypingTest: React.FC<TypingTestProps> = () => {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
     }
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
       }
     };
   }, [testStarted, testEnded, testDuration]);
@@ -384,7 +400,7 @@ const TypingTest: React.FC<TypingTestProps> = () => {
           <span className="text-grey-2">Acc</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-cyan-1">{time}</span>
+          <span className="text-cyan-1">{countdown}</span>
           <span className="text-grey-2">s</span>
         </div>
       </div>

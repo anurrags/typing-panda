@@ -1,10 +1,12 @@
-import { useTestDurationStore } from "@/store";
+import { useTestDataStore, useTestDurationStore } from "@/store";
 import React from "react";
 
 const TestDuration = () => {
   const { testDuration, setTestDuration } = useTestDurationStore();
+  const { testStarted, testEnded } = useTestDataStore();
 
   const handleTestDuration = (type: "time", value: number) => {
+    if (testStarted || testEnded) return;
     setTestDuration({ type, value });
   };
 
