@@ -10,6 +10,7 @@
     "typecheck": "tsc -p ./tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@types/next": "^8.0.7",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",

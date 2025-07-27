@@ -9,7 +9,7 @@ import SettingImage from "@/assets/setting-white.svg";
 const Header: React.FC = () => {
   const { tab, setTab } = useTabStore((state) => state);
   return (
-    <div className="flex items-center justify-between px-12 py-4">
+    <div className="bg-dark-1 flex items-center justify-between px-12 py-4">
       <div className="flex items-center gap-12">
         <div className="flex items-center gap-1">
           <Image src="/panda.svg" alt="icon" width={32} height={32} />
