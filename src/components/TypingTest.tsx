@@ -324,7 +324,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
         return;
       }
       const target = e.target as HTMLElement;
-      if (target.tagName === "BUTTON") {
+      if (target.tagName === "BUTTON" && e.key === "Enter") {
         return;
       }
       typingContainer?.focus();
