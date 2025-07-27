@@ -10,6 +10,7 @@ import { getWordsArray } from "../modules/util";
 import { BlurOverlay, Carat, CharacterRenderer } from "./";
 import { TestStats } from "@/modules/types";
 import { ArrowPathIcon } from "@heroicons/react/20/solid";
+import { useTestDurationStore } from "@/store";
 
 // Better TypeScript interfaces
 interface TypingTestProps {
@@ -21,7 +22,8 @@ interface TestState {
   userInput: string;
 }
 
-const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
+const TypingTest: React.FC<TypingTestProps> = () => {
+  const { testDuration } = useTestDurationStore();
   const [time, setTime] = useState(0);
   const [testStarted, setTestStarted] = useState(false);
   const [testEnded, setTestEnded] = useState(false);
@@ -97,7 +99,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
       intervalRef.current = setInterval(() => {
         setTime((prev) => {
           const newTime = prev + 1;
-          if (newTime >= testDuration) {
+          if (newTime >= testDuration.value) {
             setTestEnded(true);
           }
           return newTime;

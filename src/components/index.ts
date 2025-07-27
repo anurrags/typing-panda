@@ -4,3 +4,4 @@ export { default as Header } from "./Header";
 export { default as Footer } from "./Footer";
 export { default as CharacterRenderer } from "./CharacterRenderer";
 export { default as BlurOverlay } from "./BlurOverlay";
+export { default as TestDuration } from "./TestDuration";
