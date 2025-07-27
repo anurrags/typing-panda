@@ -342,7 +342,10 @@ const TypingTest: React.FC = () => {
         return;
       }
       const target = e.target as HTMLElement;
-      if (target.tagName === "BUTTON" && e.key === "Enter") {
+      if (
+        target.tagName === "BUTTON" &&
+        (e.key === "Enter" || e.key === "Tab")
+      ) {
         return;
       }
       typingContainer?.focus();
