@@ -240,8 +240,6 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
   const scrollToCaretIfNeeded = useCallback(() => {
     const container = typingContainerRef.current;
     if (!container) return;
-
-    // Use requestAnimationFrame for smoother scrolling
     requestAnimationFrame(() => {
       const caret = container.querySelector("#caret") as HTMLSpanElement | null;
       if (caret) {
@@ -314,13 +312,17 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
         typingContainer.removeEventListener("blur", handleBlur);
       }
     };
-  }, [handleKeyPress]);
+  }, [handleKeyPress, testEnded]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       const typingContainer = typingContainerRef.current;
 
       if (document.activeElement === typingContainer) {
+        return;
+      }
+      const target = e.target as HTMLElement;
+      if (target.tagName === "BUTTON") {
         return;
       }
       typingContainer?.focus();
@@ -338,7 +340,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-
+    setIsFocused(true);
     setTestStarted(false);
     setTestEnded(false);
     setTime(0);
@@ -361,7 +363,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
       testDate: new Date(),
       statsPerSecond: [],
     });
-
+    typingContainerRef.current?.focus();
     prevInputLengthRef.current = 0;
   }, []);
 
@@ -382,42 +384,42 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
           <span className="text-grey-2">s</span>
         </div>
       </div>
+      <div className="relative h-36 w-full">
+        <div
+          ref={typingContainerRef}
+          tabIndex={0}
+          className="text-grey-2 absolute inset-0 flex flex-wrap overflow-y-hidden font-mono leading-relaxed whitespace-pre-wrap select-none focus:outline-none"
+        >
+          {testState.wordsArray.map((word, wordIndex) => {
+            let globalIndex = 0;
+            // Calculate global index for this word
+            for (let i = 0; i < wordIndex; i++) {
+              globalIndex +=
+                testState.wordsArray[i].length +
+                (i < testState.wordsArray.length - 1 ? 1 : 0);
+            }
 
-      <div
-        ref={typingContainerRef}
-        tabIndex={0}
-        className="text-grey-2 relative flex h-36 flex-wrap overflow-y-hidden font-mono leading-relaxed whitespace-pre-wrap select-none focus:outline-none"
-      >
-        {testState.wordsArray.map((word, wordIndex) => {
-          let globalIndex = 0;
-          // Calculate global index for this word
-          for (let i = 0; i < wordIndex; i++) {
-            globalIndex +=
-              testState.wordsArray[i].length +
-              (i < testState.wordsArray.length - 1 ? 1 : 0);
-          }
+            return (
+              <CharacterRenderer
+                key={wordIndex}
+                word={word}
+                wordIndex={wordIndex}
+                globalIndex={globalIndex}
+                userInput={testState.userInput}
+                currentIndex={currentIndex}
+                testEnded={testEnded}
+                wordsArrayLength={testState.wordsArray.length}
+                isFocused={isFocused}
+              />
+            );
+          })}
 
-          return (
-            <CharacterRenderer
-              key={wordIndex}
-              word={word}
-              wordIndex={wordIndex}
-              globalIndex={globalIndex}
-              userInput={testState.userInput}
-              currentIndex={currentIndex}
-              testEnded={testEnded}
-              wordsArrayLength={testState.wordsArray.length}
-              isFocused={isFocused}
-            />
-          );
-        })}
-
-        {/* Edge case: caret at very end */}
-        {testState.wordsArray.length > 0 &&
-          paragraph.length === currentIndex &&
-          !testEnded &&
-          isFocused && <Carat />}
-
+          {/* Edge case: caret at very end */}
+          {testState.wordsArray.length > 0 &&
+            paragraph.length === currentIndex &&
+            !testEnded &&
+            isFocused && <Carat />}
+        </div>
         {!isFocused && <BlurOverlay />}
       </div>
       <div className="flex items-center gap-4">
