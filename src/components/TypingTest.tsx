@@ -295,10 +295,12 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
   useEffect(() => {
     const typingContainer = typingContainerRef.current;
     const handleFocus = () => {
-      if (testEnded) return;
       setIsFocused(true);
     };
-    const handleBlur = () => setIsFocused(false);
+    const handleBlur = () => {
+      if (testEnded) return;
+      setIsFocused(false);
+    };
     if (typingContainer) {
       typingContainer.focus();
       typingContainer.addEventListener("keydown", handleKeyPress);
