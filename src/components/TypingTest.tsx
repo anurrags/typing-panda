@@ -54,9 +54,22 @@ const TypingTest: React.FC = () => {
   useEffect(() => {
     setTestState((prev) => ({
       ...prev,
-      wordsArray: getWordsArray(),
+      wordsArray: getWordsArray(
+        testDuration.type === "words" ? testDuration.value : undefined,
+      ),
     }));
-  }, []);
+  }, [testDuration]);
+
+  useEffect(() => {
+    if (
+      testStarted &&
+      testState.userInput.split(" ").length > testState.wordsArray.length &&
+      !testEnded
+    ) {
+      console.log(testState.userInput.split(" "));
+      setTestEnded(true);
+    }
+  }, [testState, testStarted]);
 
   useEffect(() => {
     if (testDuration.type === "time" && !testEnded) {
@@ -108,7 +121,7 @@ const TypingTest: React.FC = () => {
       intervalRef.current = setInterval(() => {
         setTime((prev) => {
           const newTime = prev + 1;
-          if (newTime >= testDuration.value) {
+          if (testDuration.type === "time" && newTime >= testDuration.value) {
             setTestEnded(true);
           }
           return newTime;
@@ -285,15 +298,10 @@ const TypingTest: React.FC = () => {
         setTestState((prev) => {
           const newInput = prev.userInput + e.key;
           const newState = { ...prev, userInput: newInput };
-
-          if (!testStarted) {
-            setTestStarted(true);
-          }
-
           return newState;
         });
-
         if (!testStarted) {
+          setTestStarted(true);
           setTestStats((prev) => ({
             ...prev,
             testId: crypto.randomUUID(),
@@ -307,7 +315,7 @@ const TypingTest: React.FC = () => {
         }));
       }
     },
-    [testStarted, testEnded],
+    [testEnded, setTestStarted, testStarted],
   );
 
   useEffect(() => {
@@ -403,7 +411,9 @@ const TypingTest: React.FC = () => {
           <span className="text-grey-2">Acc</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-cyan-1">{countdown}</span>
+          <span className="text-cyan-1">
+            {testDuration.type === "time" ? countdown : time}
+          </span>
           <span className="text-grey-2">s</span>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 type TestDuration = {
-  type: "time";
+  type: "time" | "words";
   value: number;
 };
 

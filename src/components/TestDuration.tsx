@@ -5,14 +5,14 @@ const TestDuration = () => {
   const { testDuration, setTestDuration } = useTestDurationStore();
   const { testStarted, testEnded } = useTestDataStore();
 
-  const handleTestDuration = (type: "time", value: number) => {
+  const handleTestDuration = (type: "time" | "words", value: number) => {
     if (testStarted || testEnded) return;
     setTestDuration({ type, value });
   };
 
   return (
     <div className="bg-dark-1 flex items-center gap-6 rounded-lg px-4 py-2 select-none">
-      {/* <div className="flex gap-2">
+      <div className="flex gap-2">
         <h3>Words:</h3>
         <ul className="text-grey-2 flex gap-2">
           <li
@@ -41,7 +41,7 @@ const TestDuration = () => {
           </li>
         </ul>
       </div>
-      <div className="bg-background rounded-5 h-8 w-1"></div> */}
+      <div className="bg-background rounded-5 h-8 w-1"></div>
       <div className="flex gap-2">
         <h3>Time(s):</h3>
         <ul className="text-grey-2 flex gap-2">
