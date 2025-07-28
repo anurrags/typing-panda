@@ -18,7 +18,7 @@ interface TestState {
 }
 
 const TypingTest: React.FC = () => {
-  const { testDuration } = useTestDurationStore();
+  const { testDuration, setTestDuration } = useTestDurationStore();
   const { testStarted, testEnded, setTestStarted, setTestEnded } =
     useTestDataStore();
   const [time, setTime] = useState(0);
@@ -375,10 +375,12 @@ const TypingTest: React.FC = () => {
     setTestStarted(false);
     setTestEnded(false);
     setTime(0);
-
+    console.log("testDuration", testDuration);
     setTestState({
       userInput: "",
-      wordsArray: getWordsArray(),
+      wordsArray: getWordsArray(
+        testDuration.type === "words" ? testDuration.value : undefined,
+      ),
     });
 
     setTestStats({
@@ -396,7 +398,7 @@ const TypingTest: React.FC = () => {
     });
     typingContainerRef.current?.focus();
     prevInputLengthRef.current = 0;
-  }, []);
+  }, [setTestStarted, setTestEnded, testDuration]);
 
   return (
     <div className={`flex flex-col items-center justify-center gap-8`}>
