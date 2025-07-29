@@ -308,6 +308,12 @@ const TypingTest: React.FC = () => {
           }));
         } else {
           setTestState((prev) => {
+            if (
+              prev.userInput[prev.currentIndex].length >=
+              prev.wordsArray[prev.currentIndex].length + 5
+            ) {
+              return prev;
+            }
             const newInput = [
               ...prev.userInput.slice(0, -1),
               prev.userInput[prev.currentIndex] + e.key,

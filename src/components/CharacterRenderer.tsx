@@ -49,6 +49,9 @@ const CharacterRenderer: React.FC<CharacterRendererProps> = ({
         );
         return element;
       })}
+      {userInput.length > word.length && (
+        <span className="text-red-1">{userInput.slice(word.length)}</span>
+      )}
       {wordIndex < wordsArrayLength - 1 &&
         (() => {
           const isCaret =
