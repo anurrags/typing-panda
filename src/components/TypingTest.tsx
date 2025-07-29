@@ -14,18 +14,20 @@ import { useTestDataStore, useTestDurationStore } from "@/store";
 
 interface TestState {
   wordsArray: string[];
-  userInput: string;
+  userInput: string[];
+  currentIndex: number;
 }
 
 const TypingTest: React.FC = () => {
-  const { testDuration, setTestDuration } = useTestDurationStore();
+  const testDuration = useTestDurationStore.getState().testDuration;
   const { testStarted, testEnded, setTestStarted, setTestEnded } =
     useTestDataStore();
   const [time, setTime] = useState(0);
   const [countdown, setCountdown] = useState(testDuration.value);
   const [testState, setTestState] = useState<TestState>({
     wordsArray: [],
-    userInput: "",
+    userInput: [""],
+    currentIndex: 0,
   });
   const [isFocused, setIsFocused] = useState(true);
   const [testStats, setTestStats] = useState<TestStats>({
@@ -49,8 +51,6 @@ const TypingTest: React.FC = () => {
 
   const paragraph = testState.wordsArray.join(" ");
 
-  const currentIndex = testState.userInput.length;
-
   useEffect(() => {
     setTestState((prev) => ({
       ...prev,
@@ -63,10 +63,10 @@ const TypingTest: React.FC = () => {
   useEffect(() => {
     if (
       testStarted &&
-      testState.userInput.split(" ").length > testState.wordsArray.length &&
+      testState.userInput.length > testState.wordsArray.length &&
       !testEnded
     ) {
-      console.log(testState.userInput.split(" "));
+      console.log(testState.userInput);
       setTestEnded(true);
     }
   }, [testState, testStarted]);
@@ -83,13 +83,11 @@ const TypingTest: React.FC = () => {
       return { wpm: 0, rawWpm: 0, accuracy: 0 };
     }
 
-    const correctChars = testState.userInput
-      .split("")
-      .filter((char, index) => char === paragraph[index]).length;
+    const correctChars = testState.userInput.filter(
+      (char, index) => char === paragraph[index],
+    ).length;
 
-    const spacesTyped = testState.userInput
-      .split("")
-      .filter((char) => char === " ").length;
+    const spacesTyped = testState.userInput.length;
 
     const charsTyped = testState.userInput.length - spacesTyped;
     const correctCharsExcludingSpaces = correctChars - spacesTyped;
@@ -233,12 +231,12 @@ const TypingTest: React.FC = () => {
   useEffect(() => {
     if (testEnded) {
       const userInput = testState.userInput;
-      const correctChars = userInput
-        .split("")
-        .filter((char, index) => char === paragraph[index]).length;
+      const correctChars = userInput.filter(
+        (char, index) => char === paragraph[index],
+      ).length;
 
       const charsTyped = userInput.length;
-      const spacesTyped = userInput.split("").filter((c) => c === " ").length;
+      const spacesTyped = userInput.length;
       const correctCharsExcludingSpaces = correctChars - spacesTyped;
       const wordsTyped = correctCharsExcludingSpaces / 5;
       const rawWordsTyped = charsTyped / 5;
@@ -285,7 +283,7 @@ const TypingTest: React.FC = () => {
 
   useEffect(() => {
     scrollToCaretIfNeeded();
-  }, [currentIndex, scrollToCaretIfNeeded]);
+  }, [testState.currentIndex, scrollToCaretIfNeeded]);
 
   const handleKeyPress = useCallback(
     (e: KeyboardEvent) => {
@@ -295,11 +293,6 @@ const TypingTest: React.FC = () => {
       e.preventDefault();
 
       if (e.key.length === 1) {
-        setTestState((prev) => {
-          const newInput = prev.userInput + e.key;
-          const newState = { ...prev, userInput: newInput };
-          return newState;
-        });
         if (!testStarted) {
           setTestStarted(true);
           setTestStats((prev) => ({
@@ -307,6 +300,22 @@ const TypingTest: React.FC = () => {
             testId: crypto.randomUUID(),
             testDate: new Date(),
           }));
+        }
+        if (e.key === " ") {
+          setTestState((prev) => ({
+            ...prev,
+            userInput: [...prev.userInput, ""],
+            currentIndex: prev.currentIndex + 1,
+          }));
+        } else {
+          setTestState((prev) => {
+            const newInput = [
+              ...prev.userInput.slice(0, -1),
+              prev.userInput[prev.currentIndex] + e.key,
+            ];
+            const newState = { ...prev, userInput: newInput };
+            return newState;
+          });
         }
       } else if (e.key === "Backspace") {
         setTestState((prev) => ({
@@ -375,12 +384,12 @@ const TypingTest: React.FC = () => {
     setTestStarted(false);
     setTestEnded(false);
     setTime(0);
-    console.log("testDuration", testDuration);
     setTestState({
-      userInput: "",
+      userInput: [""],
       wordsArray: getWordsArray(
         testDuration.type === "words" ? testDuration.value : undefined,
       ),
+      currentIndex: 0,
     });
 
     setTestStats({
@@ -433,15 +442,14 @@ const TypingTest: React.FC = () => {
                 testState.wordsArray[i].length +
                 (i < testState.wordsArray.length - 1 ? 1 : 0);
             }
-
             return (
               <CharacterRenderer
                 key={wordIndex}
                 word={word}
                 wordIndex={wordIndex}
                 globalIndex={globalIndex}
-                userInput={testState.userInput}
-                currentIndex={currentIndex}
+                userInput={testState.userInput[wordIndex] || ""}
+                currentIndex={testState.currentIndex}
                 testEnded={testEnded}
                 wordsArrayLength={testState.wordsArray.length}
                 isFocused={isFocused}
@@ -451,7 +459,7 @@ const TypingTest: React.FC = () => {
 
           {/* Edge case: caret at very end */}
           {testState.wordsArray.length > 0 &&
-            paragraph.length === currentIndex &&
+            paragraph.length === testState.currentIndex &&
             !testEnded &&
             isFocused && <Carat />}
         </div>

@@ -23,19 +23,18 @@ const CharacterRenderer: React.FC<CharacterRendererProps> = ({
   wordsArrayLength,
   isFocused,
 }) => {
-  let globalIndex = startGlobalIndex;
-
   return (
     <div className="my-2 inline-flex text-3xl leading-8 tracking-wider whitespace-nowrap">
       {Array.from(word).map((char, charIndex) => {
-        const typedChar = userInput[globalIndex];
+        const typedChar = userInput.charAt(charIndex);
         let status: "correct" | "incorrect" | "notTyped" = "notTyped";
 
-        if (typedChar !== undefined) {
+        if (typedChar !== "") {
           status = typedChar === char ? "correct" : "incorrect";
         }
 
-        const isCaret = globalIndex === currentIndex;
+        const isCaret =
+          currentIndex === wordIndex && userInput.length === charIndex;
         const element = (
           <span key={charIndex} className="relative">
             {isCaret && !testEnded && isFocused && <Carat />}
@@ -48,13 +47,12 @@ const CharacterRenderer: React.FC<CharacterRendererProps> = ({
             </span>
           </span>
         );
-
-        globalIndex++;
         return element;
       })}
       {wordIndex < wordsArrayLength - 1 &&
         (() => {
-          const isCaret = globalIndex === currentIndex;
+          const isCaret =
+            currentIndex === wordIndex && userInput.length >= word.length;
           const space = (
             <span key={`space-${wordIndex}`} className="relative">
               {isCaret && !testEnded && isFocused && <Carat />}
