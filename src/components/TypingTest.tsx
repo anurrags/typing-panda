@@ -66,7 +66,6 @@ const TypingTest: React.FC = () => {
       testState.userInput.length > testState.wordsArray.length &&
       !testEnded
     ) {
-      console.log(testState.userInput);
       setTestEnded(true);
     }
   }, [testState, testStarted]);
@@ -318,10 +317,27 @@ const TypingTest: React.FC = () => {
           });
         }
       } else if (e.key === "Backspace") {
-        setTestState((prev) => ({
-          ...prev,
-          userInput: prev.userInput.slice(0, -1),
-        }));
+        setTestState((prev) => {
+          const newInput = [
+            ...prev.userInput.slice(0, -1),
+            prev.userInput[prev.currentIndex].slice(0, -1),
+          ];
+          if (
+            newInput[prev.currentIndex].length === 0 &&
+            prev.currentIndex > 0
+          ) {
+            newInput.pop();
+            return {
+              ...prev,
+              userInput: newInput,
+              currentIndex: prev.currentIndex - 1,
+            };
+          }
+          return {
+            ...prev,
+            userInput: newInput,
+          };
+        });
       }
     },
     [testEnded, setTestStarted, testStarted],
