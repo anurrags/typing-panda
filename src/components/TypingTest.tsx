@@ -47,7 +47,10 @@ const TypingTest: React.FC = () => {
   const typingContainerRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const prevInputLengthRef = useRef(0);
+  const prevInputLengthRef = useRef({
+    wordIndex: 0,
+    charIndex: -1,
+  });
 
   const paragraph = testState.wordsArray.join(" ");
 
@@ -150,65 +153,54 @@ const TypingTest: React.FC = () => {
   // Update per second stats when time changes
   useEffect(() => {
     if (!testStarted && !testEnded) {
-      prevInputLengthRef.current = 0;
       return;
     }
 
-    const currentInputLength = testState.userInput.join(" ").length;
-    const prevInputLength = prevInputLengthRef.current;
+    const currentWordIndex = testState.userInput.length - 1;
+    const currentCharIndex = testState.userInput[currentWordIndex]
+      ? testState.userInput[currentWordIndex].length - 1
+      : -1;
 
-    // Characters typed in last second interval
-    const newCharsTyped = currentInputLength - prevInputLength;
+    const prevWordIndex = prevInputLengthRef.current.wordIndex;
+    const prevCharIndex = prevInputLengthRef.current.charIndex;
 
-    if (newCharsTyped <= 0) {
-      // No new input this second (maybe backspace)
-      // Still update prevInputLength so this doesn't cause stale data
-      prevInputLengthRef.current = currentInputLength;
-      return;
-    }
+    const newTypedWords = testState.userInput.slice(
+      prevWordIndex,
+      currentWordIndex + 1,
+    );
+    const newTypedWordsCorrectValues = testState.wordsArray.slice(
+      prevWordIndex,
+      currentWordIndex + 1,
+    );
 
-    const newlyTypedChars = testState.userInput
-      .join(" ")
-      .slice(prevInputLength, currentInputLength);
-
-    const paragraphSlice = paragraph.slice(prevInputLength, currentInputLength);
-
-    // Calculate correct chars in last second
-    let correctCharsLastSecond = 0;
-    let spacesTypedLastSecond = 0;
-
-    for (let i = 0; i < newlyTypedChars.length; i++) {
-      if (newlyTypedChars[i] === paragraphSlice[i]) {
-        correctCharsLastSecond++;
+    let newCorrectChars = 0;
+    let newTypedCharsLength = 0;
+    for (let i = 0; i < newTypedWords.length; i++) {
+      let j = i === 0 ? prevCharIndex + 1 : 0;
+      // user may only have typed some characters from first word in this particular second
+      for (; j < newTypedWords[i].length; j++) {
+        if (
+          newTypedWords[i].charAt(j) === newTypedWordsCorrectValues[i].charAt(j)
+        ) {
+          newCorrectChars++;
+        }
+        newTypedCharsLength++;
       }
-      if (newlyTypedChars[i] === " ") {
-        spacesTypedLastSecond++;
-      }
     }
+    const spacesTyped = newTypedWords.length > 0 ? newTypedWords.length - 1 : 0;
+    const newWordsTyped = (newCorrectChars + spacesTyped) / 5;
+    const newRawWordsTyped = (newTypedCharsLength + spacesTyped) / 5;
 
-    const charsTypedLastSecond = newlyTypedChars.length - spacesTypedLastSecond;
-    const correctCharsExcludingSpacesLastSecond =
-      correctCharsLastSecond - spacesTypedLastSecond;
-
-    const wordsTypedLastSecond =
-      (correctCharsExcludingSpacesLastSecond > 0
-        ? correctCharsExcludingSpacesLastSecond
-        : 0) / 5;
-    const rawWordsTypedLastSecond =
-      (charsTypedLastSecond > 0 ? charsTypedLastSecond : 0) / 5;
-
-    const wpmLastSecond = Math.round(wordsTypedLastSecond * 60);
-    const rawWpmLastSecond = Math.round(rawWordsTypedLastSecond * 60);
+    const wpmLastSecond = Math.round(newWordsTyped * 60);
+    const rawWpmLastSecond = Math.round(newRawWordsTyped * 60);
 
     const accuracyLastSecond =
-      newlyTypedChars.length === 0
+      newTypedCharsLength === 0
         ? 0
-        : Math.round((correctCharsLastSecond / newlyTypedChars.length) * 100);
+        : Math.round((newCorrectChars / newTypedCharsLength) * 100);
 
     const errorRateLastSecond =
-      newlyTypedChars.length === 0
-        ? 0
-        : newlyTypedChars.length - correctCharsLastSecond;
+      newTypedCharsLength === 0 ? 0 : newTypedCharsLength - newCorrectChars;
 
     const newStatsPerSecond = {
       wpm: wpmLastSecond,
@@ -224,7 +216,10 @@ const TypingTest: React.FC = () => {
     }));
 
     // Update the ref for next interval
-    prevInputLengthRef.current = currentInputLength;
+    prevInputLengthRef.current = {
+      wordIndex: currentWordIndex,
+      charIndex: currentCharIndex,
+    };
   }, [time]);
 
   // Final stats calculation on test end
@@ -429,7 +424,10 @@ const TypingTest: React.FC = () => {
       statsPerSecond: [],
     });
     typingContainerRef.current?.focus();
-    prevInputLengthRef.current = 0;
+    prevInputLengthRef.current = {
+      wordIndex: 0,
+      charIndex: -1,
+    };
   }, [setTestStarted, setTestEnded, testDuration]);
 
   return (
