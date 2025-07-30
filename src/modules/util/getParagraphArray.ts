@@ -2,12 +2,14 @@ import englishWords from "@/data/english_1k.json";
 import { ParagraphState } from "../types";
 
 const words = englishWords.words;
-export const getWordsArray = () => {
+export const getWordsArray = (length?: number) => {
   let charCount = 0;
   const wordsArray: string[] = [];
-  while (charCount < 1000) {
+  while (
+    (length && wordsArray.length < length) ||
+    (!length && charCount < 1000)
+  ) {
     const word = words[Math.floor(Math.random() * words.length)];
-    if (charCount + word.length > 1000) break;
 
     wordsArray.push(word);
     charCount += word.length + 1;

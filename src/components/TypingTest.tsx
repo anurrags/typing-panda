@@ -10,24 +10,24 @@ import { getWordsArray } from "../modules/util";
 import { BlurOverlay, Carat, CharacterRenderer } from "./";
 import { TestStats } from "@/modules/types";
 import { ArrowPathIcon } from "@heroicons/react/20/solid";
-
-// Better TypeScript interfaces
-interface TypingTestProps {
-  testDuration?: number;
-}
+import { useTestDataStore, useTestDurationStore } from "@/store";
 
 interface TestState {
   wordsArray: string[];
-  userInput: string;
+  userInput: string[];
+  currentIndex: number;
 }
 
-const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
+const TypingTest: React.FC = () => {
+  const testDuration = useTestDurationStore.getState().testDuration;
+  const { testStarted, testEnded, setTestStarted, setTestEnded } =
+    useTestDataStore();
   const [time, setTime] = useState(0);
-  const [testStarted, setTestStarted] = useState(false);
-  const [testEnded, setTestEnded] = useState(false);
+  const [countdown, setCountdown] = useState(testDuration.value);
   const [testState, setTestState] = useState<TestState>({
     wordsArray: [],
-    userInput: "",
+    userInput: [""],
+    currentIndex: 0,
   });
   const [isFocused, setIsFocused] = useState(true);
   const [testStats, setTestStats] = useState<TestStats>({
@@ -46,58 +46,88 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
 
   const typingContainerRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const prevInputLengthRef = useRef(0);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const prevInputLengthRef = useRef({
+    wordIndex: 0,
+    charIndex: -1,
+  });
 
   const paragraph = testState.wordsArray.join(" ");
-
-  const currentIndex = testState.userInput.length;
 
   useEffect(() => {
     setTestState((prev) => ({
       ...prev,
-      wordsArray: getWordsArray(),
+      wordsArray: getWordsArray(
+        testDuration.type === "words" ? testDuration.value : undefined,
+      ),
     }));
-  }, []);
+  }, [testDuration]);
+
+  useEffect(() => {
+    if (
+      testStarted &&
+      testState.userInput.length > testState.wordsArray.length &&
+      !testEnded
+    ) {
+      setTestEnded(true);
+    }
+  }, [testState, testStarted]);
+
+  useEffect(() => {
+    if (testDuration.type === "time" && !testEnded) {
+      setCountdown(testDuration.value);
+    }
+  }, [testDuration, testEnded]);
 
   // Memoized statistics calculation
   const currentStats = useMemo(() => {
     if (time === 0) {
-      return { wpm: 0, rawWpm: 0, accuracy: 0 };
+      return { wpm: 0, accuracy: 0 };
     }
 
-    const correctChars = testState.userInput
-      .split("")
-      .filter((char, index) => char === paragraph[index]).length;
+    let correctChars = 0;
+    let charsTyped = 0;
+    for (let i = 0; i < testState.userInput.length; i++) {
+      for (let j = 0; j < testState.userInput[i].length; j++) {
+        if (
+          testState.userInput[i].charAt(j) === testState.wordsArray[i].charAt(j)
+        ) {
+          correctChars++;
+        }
+        charsTyped++;
+      }
+    }
 
-    const spacesTyped = testState.userInput
-      .split("")
-      .filter((char) => char === " ").length;
+    const spacesTyped = testState.userInput.length;
 
-    const charsTyped = testState.userInput.length - spacesTyped;
-    const correctCharsExcludingSpaces = correctChars - spacesTyped;
-    const wordsTyped = correctCharsExcludingSpaces / 5;
-    const rawWordsTyped = charsTyped / 5;
+    const wordsTyped = (correctChars + spacesTyped) / 5;
     const timeInMinutes = time / 60;
 
     const wpm =
       timeInMinutes === 0 ? 0 : Math.round(wordsTyped / timeInMinutes);
-    const rawWpm =
-      timeInMinutes === 0 ? 0 : Math.round(rawWordsTyped / timeInMinutes);
     const accuracy =
-      testState.userInput.length === 0
+      charsTyped === 0
         ? 0
-        : Math.round((correctChars / testState.userInput.length) * 100);
+        : Math.round(
+            ((correctChars + spacesTyped) / (charsTyped + spacesTyped)) * 100,
+          );
 
-    return { wpm, rawWpm, accuracy };
+    return { wpm, accuracy };
   }, [time, testStarted]);
 
   // Timer management
   useEffect(() => {
     if (testStarted && !testEnded) {
+      if (testDuration.type === "time") {
+        countdownIntervalRef.current = setInterval(() => {
+          setCountdown((prev) => prev - 1);
+        }, 1000);
+      }
+
       intervalRef.current = setInterval(() => {
         setTime((prev) => {
           const newTime = prev + 1;
-          if (newTime >= testDuration) {
+          if (testDuration.type === "time" && newTime >= testDuration.value) {
             setTestEnded(true);
           }
           return newTime;
@@ -108,11 +138,18 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
     }
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
       }
     };
   }, [testStarted, testEnded, testDuration]);
@@ -120,66 +157,54 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
   // Update per second stats when time changes
   useEffect(() => {
     if (!testStarted && !testEnded) {
-      prevInputLengthRef.current = 0;
       return;
     }
 
-    const currentInputLength = testState.userInput.length;
-    const prevInputLength = prevInputLengthRef.current;
+    const currentWordIndex = testState.userInput.length - 1;
+    const currentCharIndex = testState.userInput[currentWordIndex]
+      ? testState.userInput[currentWordIndex].length - 1
+      : -1;
 
-    // Characters typed in last second interval
-    const newCharsTyped = currentInputLength - prevInputLength;
+    const prevWordIndex = prevInputLengthRef.current.wordIndex;
+    const prevCharIndex = prevInputLengthRef.current.charIndex;
 
-    if (newCharsTyped <= 0) {
-      // No new input this second (maybe backspace)
-      // Still update prevInputLength so this doesn't cause stale data
-      prevInputLengthRef.current = currentInputLength;
-      return;
-    }
-
-    const newlyTypedChars = testState.userInput.slice(
-      prevInputLength,
-      currentInputLength,
+    const newTypedWords = testState.userInput.slice(
+      prevWordIndex,
+      currentWordIndex + 1,
+    );
+    const newTypedWordsCorrectValues = testState.wordsArray.slice(
+      prevWordIndex,
+      currentWordIndex + 1,
     );
 
-    const paragraphSlice = paragraph.slice(prevInputLength, currentInputLength);
-
-    // Calculate correct chars in last second
-    let correctCharsLastSecond = 0;
-    let spacesTypedLastSecond = 0;
-
-    for (let i = 0; i < newlyTypedChars.length; i++) {
-      if (newlyTypedChars[i] === paragraphSlice[i]) {
-        correctCharsLastSecond++;
-      }
-      if (newlyTypedChars[i] === " ") {
-        spacesTypedLastSecond++;
+    let newCorrectChars = 0;
+    let newTypedCharsLength = 0;
+    for (let i = 0; i < newTypedWords.length; i++) {
+      let j = i === 0 ? prevCharIndex + 1 : 0;
+      // user may only have typed some characters from first word in this particular second
+      for (; j < newTypedWords[i].length; j++) {
+        if (
+          newTypedWords[i].charAt(j) === newTypedWordsCorrectValues[i].charAt(j)
+        ) {
+          newCorrectChars++;
+        }
+        newTypedCharsLength++;
       }
     }
+    const spacesTyped = newTypedWords.length > 0 ? newTypedWords.length - 1 : 0;
+    const newWordsTyped = (newCorrectChars + spacesTyped) / 5;
+    const newRawWordsTyped = (newTypedCharsLength + spacesTyped) / 5;
 
-    const charsTypedLastSecond = newlyTypedChars.length - spacesTypedLastSecond;
-    const correctCharsExcludingSpacesLastSecond =
-      correctCharsLastSecond - spacesTypedLastSecond;
-
-    const wordsTypedLastSecond =
-      (correctCharsExcludingSpacesLastSecond > 0
-        ? correctCharsExcludingSpacesLastSecond
-        : 0) / 5;
-    const rawWordsTypedLastSecond =
-      (charsTypedLastSecond > 0 ? charsTypedLastSecond : 0) / 5;
-
-    const wpmLastSecond = Math.round(wordsTypedLastSecond * 60);
-    const rawWpmLastSecond = Math.round(rawWordsTypedLastSecond * 60);
+    const wpmLastSecond = Math.round(newWordsTyped * 60);
+    const rawWpmLastSecond = Math.round(newRawWordsTyped * 60);
 
     const accuracyLastSecond =
-      newlyTypedChars.length === 0
+      newTypedCharsLength === 0
         ? 0
-        : Math.round((correctCharsLastSecond / newlyTypedChars.length) * 100);
+        : Math.round((newCorrectChars / newTypedCharsLength) * 100);
 
     const errorRateLastSecond =
-      newlyTypedChars.length === 0
-        ? 0
-        : newlyTypedChars.length - correctCharsLastSecond;
+      newTypedCharsLength === 0 ? 0 : newTypedCharsLength - newCorrectChars;
 
     const newStatsPerSecond = {
       wpm: wpmLastSecond,
@@ -195,22 +220,38 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
     }));
 
     // Update the ref for next interval
-    prevInputLengthRef.current = currentInputLength;
+    prevInputLengthRef.current = {
+      wordIndex: currentWordIndex,
+      charIndex: currentCharIndex,
+    };
   }, [time]);
 
   // Final stats calculation on test end
   useEffect(() => {
     if (testEnded) {
       const userInput = testState.userInput;
-      const correctChars = userInput
-        .split("")
-        .filter((char, index) => char === paragraph[index]).length;
+      let charsTyped = 0;
+      let correctChars = 0;
+      let incorrectChars = 0;
+      let extraChars = 0;
+      for (let i = 0; i < userInput.length; i++) {
+        for (let j = 0; j < userInput[i].length; j++) {
+          if (j >= testState.wordsArray[i].length) {
+            extraChars++;
+          } else if (
+            userInput[i].charAt(j) === testState.wordsArray[i].charAt(j)
+          ) {
+            correctChars++;
+          } else {
+            incorrectChars++;
+          }
+          charsTyped++;
+        }
+      }
 
-      const charsTyped = userInput.length;
-      const spacesTyped = userInput.split("").filter((c) => c === " ").length;
-      const correctCharsExcludingSpaces = correctChars - spacesTyped;
-      const wordsTyped = correctCharsExcludingSpaces / 5;
-      const rawWordsTyped = charsTyped / 5;
+      const spacesTyped = userInput.length - 1;
+      const wordsTyped = (correctChars + spacesTyped) / 5;
+      const rawWordsTyped = (charsTyped + spacesTyped) / 5;
       const timeInMinutes = time / 60;
 
       const wpm =
@@ -218,7 +259,11 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
       const rawWpm =
         timeInMinutes === 0 ? 0 : Math.round(rawWordsTyped / timeInMinutes);
       const accuracy =
-        charsTyped === 0 ? 0 : Math.round((correctChars / charsTyped) * 100);
+        charsTyped === 0
+          ? 0
+          : Math.round(
+              ((correctChars + spacesTyped) / (charsTyped + spacesTyped)) * 100,
+            );
 
       setTestStats((prev) => ({
         ...prev,
@@ -226,14 +271,13 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
         meanRawWpm: rawWpm,
         accuracy: accuracy,
         testTime: time,
-        charsTyped: testState.userInput.length,
+        charsTyped: charsTyped,
         correctChars: correctChars,
-        incorrectChars: testState.userInput.length - correctChars,
-        extraChars: Math.max(0, testState.userInput.length - paragraph.length),
+        incorrectChars: incorrectChars,
+        extraChars: extraChars,
         testDate: new Date(),
       }));
       setTestStarted(false);
-      console.log(testStats);
     }
   }, [testEnded]);
 
@@ -254,7 +298,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
 
   useEffect(() => {
     scrollToCaretIfNeeded();
-  }, [currentIndex, scrollToCaretIfNeeded]);
+  }, [testState.currentIndex, scrollToCaretIfNeeded]);
 
   const handleKeyPress = useCallback(
     (e: KeyboardEvent) => {
@@ -264,32 +308,61 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
       e.preventDefault();
 
       if (e.key.length === 1) {
-        setTestState((prev) => {
-          const newInput = prev.userInput + e.key;
-          const newState = { ...prev, userInput: newInput };
-
-          if (!testStarted) {
-            setTestStarted(true);
-          }
-
-          return newState;
-        });
-
         if (!testStarted) {
+          setTestStarted(true);
           setTestStats((prev) => ({
             ...prev,
             testId: crypto.randomUUID(),
             testDate: new Date(),
           }));
         }
+        if (e.key === " ") {
+          setTestState((prev) => ({
+            ...prev,
+            userInput: [...prev.userInput, ""],
+            currentIndex: prev.currentIndex + 1,
+          }));
+        } else {
+          setTestState((prev) => {
+            if (
+              prev.userInput[prev.currentIndex].length >=
+              prev.wordsArray[prev.currentIndex].length + 5
+            ) {
+              return prev;
+            }
+            const newInput = [
+              ...prev.userInput.slice(0, -1),
+              prev.userInput[prev.currentIndex] + e.key,
+            ];
+            const newState = { ...prev, userInput: newInput };
+            return newState;
+          });
+        }
       } else if (e.key === "Backspace") {
-        setTestState((prev) => ({
-          ...prev,
-          userInput: prev.userInput.slice(0, -1),
-        }));
+        setTestState((prev) => {
+          const newInput = [
+            ...prev.userInput.slice(0, -1),
+            prev.userInput[prev.currentIndex].slice(0, -1),
+          ];
+          // if (
+          //   newInput[prev.currentIndex].length === 0 &&
+          //   prev.currentIndex > 0
+          // ) {
+          //   newInput.pop();
+          //   return {
+          //     ...prev,
+          //     userInput: newInput,
+          //     currentIndex: prev.currentIndex - 1,
+          //   };
+          // }
+          return {
+            ...prev,
+            userInput: newInput,
+          };
+        });
       }
     },
-    [testStarted, testEnded],
+    [testEnded, setTestStarted, testStarted],
   );
 
   useEffect(() => {
@@ -324,7 +397,10 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
         return;
       }
       const target = e.target as HTMLElement;
-      if (target.tagName === "BUTTON") {
+      if (
+        target.tagName === "BUTTON" &&
+        (e.key === "Enter" || e.key === "Tab")
+      ) {
         return;
       }
       typingContainer?.focus();
@@ -346,10 +422,12 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
     setTestStarted(false);
     setTestEnded(false);
     setTime(0);
-
     setTestState({
-      userInput: "",
-      wordsArray: getWordsArray(),
+      userInput: [""],
+      wordsArray: getWordsArray(
+        testDuration.type === "words" ? testDuration.value : undefined,
+      ),
+      currentIndex: 0,
     });
 
     setTestStats({
@@ -366,8 +444,11 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
       statsPerSecond: [],
     });
     typingContainerRef.current?.focus();
-    prevInputLengthRef.current = 0;
-  }, []);
+    prevInputLengthRef.current = {
+      wordIndex: 0,
+      charIndex: -1,
+    };
+  }, [setTestStarted, setTestEnded, testDuration]);
 
   return (
     <div className={`flex flex-col items-center justify-center gap-8`}>
@@ -382,7 +463,9 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
           <span className="text-grey-2">Acc</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-cyan-1">{time}</span>
+          <span className="text-cyan-1">
+            {testDuration.type === "time" ? countdown : time}
+          </span>
           <span className="text-grey-2">s</span>
         </div>
       </div>
@@ -400,15 +483,13 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
                 testState.wordsArray[i].length +
                 (i < testState.wordsArray.length - 1 ? 1 : 0);
             }
-
             return (
               <CharacterRenderer
                 key={wordIndex}
                 word={word}
                 wordIndex={wordIndex}
-                globalIndex={globalIndex}
-                userInput={testState.userInput}
-                currentIndex={currentIndex}
+                userInput={testState.userInput[wordIndex] || ""}
+                currentIndex={testState.currentIndex}
                 testEnded={testEnded}
                 wordsArrayLength={testState.wordsArray.length}
                 isFocused={isFocused}
@@ -418,7 +499,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ testDuration = 30 }) => {
 
           {/* Edge case: caret at very end */}
           {testState.wordsArray.length > 0 &&
-            paragraph.length === currentIndex &&
+            paragraph.length === testState.currentIndex &&
             !testEnded &&
             isFocused && <Carat />}
         </div>
