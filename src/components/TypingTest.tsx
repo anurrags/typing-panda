@@ -106,7 +106,11 @@ const TypingTest: React.FC = () => {
     const wpm =
       timeInMinutes === 0 ? 0 : Math.round(wordsTyped / timeInMinutes);
     const accuracy =
-      charsTyped === 0 ? 0 : Math.round((correctChars / charsTyped) * 100);
+      charsTyped === 0
+        ? 0
+        : Math.round(
+            ((correctChars + spacesTyped) / (charsTyped + spacesTyped)) * 100,
+          );
 
     return { wpm, accuracy };
   }, [time, testStarted]);
@@ -226,15 +230,28 @@ const TypingTest: React.FC = () => {
   useEffect(() => {
     if (testEnded) {
       const userInput = testState.userInput;
-      const correctChars = userInput.filter(
-        (char, index) => char === paragraph[index],
-      ).length;
+      let charsTyped = 0;
+      let correctChars = 0;
+      let incorrectChars = 0;
+      let extraChars = 0;
+      for (let i = 0; i < userInput.length; i++) {
+        for (let j = 0; j < userInput[i].length; j++) {
+          if (j >= testState.wordsArray[i].length) {
+            extraChars++;
+          } else if (
+            userInput[i].charAt(j) === testState.wordsArray[i].charAt(j)
+          ) {
+            correctChars++;
+          } else {
+            incorrectChars++;
+          }
+          charsTyped++;
+        }
+      }
 
-      const charsTyped = userInput.length;
-      const spacesTyped = userInput.length;
-      const correctCharsExcludingSpaces = correctChars - spacesTyped;
-      const wordsTyped = correctCharsExcludingSpaces / 5;
-      const rawWordsTyped = charsTyped / 5;
+      const spacesTyped = userInput.length - 1;
+      const wordsTyped = (correctChars + spacesTyped) / 5;
+      const rawWordsTyped = (charsTyped + spacesTyped) / 5;
       const timeInMinutes = time / 60;
 
       const wpm =
@@ -242,7 +259,11 @@ const TypingTest: React.FC = () => {
       const rawWpm =
         timeInMinutes === 0 ? 0 : Math.round(rawWordsTyped / timeInMinutes);
       const accuracy =
-        charsTyped === 0 ? 0 : Math.round((correctChars / charsTyped) * 100);
+        charsTyped === 0
+          ? 0
+          : Math.round(
+              ((correctChars + spacesTyped) / (charsTyped + spacesTyped)) * 100,
+            );
 
       setTestStats((prev) => ({
         ...prev,
@@ -250,14 +271,13 @@ const TypingTest: React.FC = () => {
         meanRawWpm: rawWpm,
         accuracy: accuracy,
         testTime: time,
-        charsTyped: testState.userInput.length,
+        charsTyped: charsTyped,
         correctChars: correctChars,
-        incorrectChars: testState.userInput.length - correctChars,
-        extraChars: Math.max(0, testState.userInput.length - paragraph.length),
+        incorrectChars: incorrectChars,
+        extraChars: extraChars,
         testDate: new Date(),
       }));
       setTestStarted(false);
-      console.log(testStats);
     }
   }, [testEnded]);
 

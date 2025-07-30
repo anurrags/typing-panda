@@ -7,7 +7,7 @@ export type TestStats = {
   charsTyped: number;
   correctChars: number;
   incorrectChars: number;
-  extraChars: number; //not used in current version
+  extraChars: number;
   testDate: Date;
   statsPerSecond: StatsPerSecond[];
 };
