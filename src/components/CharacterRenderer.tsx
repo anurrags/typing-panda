@@ -5,7 +5,6 @@ import { Carat } from "./";
 interface CharacterRendererProps {
   word: string;
   wordIndex: number;
-  globalIndex: number;
   userInput: string;
   currentIndex: number;
   testEnded: boolean;
@@ -16,7 +15,6 @@ interface CharacterRendererProps {
 const CharacterRenderer: React.FC<CharacterRendererProps> = ({
   word,
   wordIndex,
-  globalIndex: startGlobalIndex,
   userInput,
   currentIndex,
   testEnded,

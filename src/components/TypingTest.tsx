@@ -79,31 +79,33 @@ const TypingTest: React.FC = () => {
   // Memoized statistics calculation
   const currentStats = useMemo(() => {
     if (time === 0) {
-      return { wpm: 0, rawWpm: 0, accuracy: 0 };
+      return { wpm: 0, accuracy: 0 };
     }
 
-    const correctChars = testState.userInput.filter(
-      (char, index) => char === paragraph[index],
-    ).length;
+    let correctChars = 0;
+    let charsTyped = 0;
+    for (let i = 0; i < testState.userInput.length; i++) {
+      for (let j = 0; j < testState.userInput[i].length; j++) {
+        if (
+          testState.userInput[i].charAt(j) === testState.wordsArray[i].charAt(j)
+        ) {
+          correctChars++;
+        }
+        charsTyped++;
+      }
+    }
 
     const spacesTyped = testState.userInput.length;
 
-    const charsTyped = testState.userInput.length - spacesTyped;
-    const correctCharsExcludingSpaces = correctChars - spacesTyped;
-    const wordsTyped = correctCharsExcludingSpaces / 5;
-    const rawWordsTyped = charsTyped / 5;
+    const wordsTyped = (correctChars + spacesTyped) / 5;
     const timeInMinutes = time / 60;
 
     const wpm =
       timeInMinutes === 0 ? 0 : Math.round(wordsTyped / timeInMinutes);
-    const rawWpm =
-      timeInMinutes === 0 ? 0 : Math.round(rawWordsTyped / timeInMinutes);
     const accuracy =
-      testState.userInput.length === 0
-        ? 0
-        : Math.round((correctChars / testState.userInput.length) * 100);
+      charsTyped === 0 ? 0 : Math.round((correctChars / charsTyped) * 100);
 
-    return { wpm, rawWpm, accuracy };
+    return { wpm, accuracy };
   }, [time, testStarted]);
 
   // Timer management
@@ -152,7 +154,7 @@ const TypingTest: React.FC = () => {
       return;
     }
 
-    const currentInputLength = testState.userInput.length;
+    const currentInputLength = testState.userInput.join(" ").length;
     const prevInputLength = prevInputLengthRef.current;
 
     // Characters typed in last second interval
@@ -165,10 +167,9 @@ const TypingTest: React.FC = () => {
       return;
     }
 
-    const newlyTypedChars = testState.userInput.slice(
-      prevInputLength,
-      currentInputLength,
-    );
+    const newlyTypedChars = testState.userInput
+      .join(" ")
+      .slice(prevInputLength, currentInputLength);
 
     const paragraphSlice = paragraph.slice(prevInputLength, currentInputLength);
 
@@ -328,17 +329,17 @@ const TypingTest: React.FC = () => {
             ...prev.userInput.slice(0, -1),
             prev.userInput[prev.currentIndex].slice(0, -1),
           ];
-          if (
-            newInput[prev.currentIndex].length === 0 &&
-            prev.currentIndex > 0
-          ) {
-            newInput.pop();
-            return {
-              ...prev,
-              userInput: newInput,
-              currentIndex: prev.currentIndex - 1,
-            };
-          }
+          // if (
+          //   newInput[prev.currentIndex].length === 0 &&
+          //   prev.currentIndex > 0
+          // ) {
+          //   newInput.pop();
+          //   return {
+          //     ...prev,
+          //     userInput: newInput,
+          //     currentIndex: prev.currentIndex - 1,
+          //   };
+          // }
           return {
             ...prev,
             userInput: newInput,
@@ -469,7 +470,6 @@ const TypingTest: React.FC = () => {
                 key={wordIndex}
                 word={word}
                 wordIndex={wordIndex}
-                globalIndex={globalIndex}
                 userInput={testState.userInput[wordIndex] || ""}
                 currentIndex={testState.currentIndex}
                 testEnded={testEnded}
