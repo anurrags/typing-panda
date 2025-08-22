@@ -476,13 +476,6 @@ const TypingTest: React.FC = () => {
           className="text-grey-2 absolute inset-0 flex flex-wrap overflow-y-hidden font-mono leading-relaxed whitespace-pre-wrap select-none focus:outline-none"
         >
           {testState.wordsArray.map((word, wordIndex) => {
-            let globalIndex = 0;
-            // Calculate global index for this word
-            for (let i = 0; i < wordIndex; i++) {
-              globalIndex +=
-                testState.wordsArray[i].length +
-                (i < testState.wordsArray.length - 1 ? 1 : 0);
-            }
             return (
               <CharacterRenderer
                 key={wordIndex}
