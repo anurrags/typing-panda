@@ -27,6 +27,20 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="icon" href="/panda.ico" />
+        <meta
+          name="google-site-verification"
+          content="7e79veV3Sq-Pfu_lW94F2-SpEz0v1E8JtP-qH3Vwazk"
+        />
+        <meta
+          name="description"
+          content="Typing Panda is a fun typing practice app to boost your typing speed and accuracy."
+        />
+        <meta
+          name="keywords"
+          content="typing panda, typing practice, typing test, typing speed, typing app"
+        />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href="https://typing-panda.vercel.app/" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
