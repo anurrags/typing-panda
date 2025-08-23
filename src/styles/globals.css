@@ -6,6 +6,7 @@
   --color-cyan-3: #10b981;
   --color-dark-1: #232429;
   --color-green-1: #6ee7b7;
+  --color-green-2: #2d2f35;
   --color-grey-1: #c1c2c5;
   --color-grey-2: #6b7280;
   --color-grey-3: #9ca3af;
@@ -38,6 +39,7 @@ body {
   --color-red-1: var(--color-red-1);
   --color-light-1: var(--color-light-1);
   --color-green-1: var(--color-green-1);
+  --color-green-2: var(--color-green-2);
   --color-dark-1: var(--color-dark-1);
   --color-cyan-2: var(--color-cyan-2);
   --color-grey-2: var(--color-grey-2);

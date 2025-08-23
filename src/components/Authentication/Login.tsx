@@ -7,8 +7,6 @@ import * as z from "zod";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/modules/hooks";
-import { Banner } from "../Modal";
-import { BannerType } from "@/modules/types";
 import { useBannerStore } from "@/store/bannerStore";
 
 type AuthMode = "login" | "signup";
@@ -32,10 +30,6 @@ const signupSchema = z
     message: "Passwords don't match",
     path: ["confirmPassword"],
   });
-
-type LoginProps = {
-  showBanner: (text: string, type: BannerType, time: number) => void;
-};
 
 export default function Login() {
   const [mode, setMode] = useState<AuthMode>("login");
