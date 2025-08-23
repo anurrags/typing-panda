@@ -3,10 +3,13 @@
 :root {
   --color-cyan-1: #6ee7b7;
   --color-cyan-2: #2dd4bf;
+  --color-cyan-3: #10b981;
   --color-dark-1: #232429;
   --color-green-1: #6ee7b7;
   --color-grey-1: #c1c2c5;
   --color-grey-2: #6b7280;
+  --color-grey-3: #9ca3af;
+  --color-grey-4: #2d2f35;
   --color-light-1: #e2e8f0;
   --color-red-1: #f87171;
 }
@@ -38,7 +41,10 @@ body {
   --color-dark-1: var(--color-dark-1);
   --color-cyan-2: var(--color-cyan-2);
   --color-grey-2: var(--color-grey-2);
+  --color-grey-3: var(--color-grey-3);
+  --color-grey-4: var(--color-grey-4);
   --color-background: var(--background);
+  --color-cyan-3: var(--color-cyan-3);
 
   --animate-blink: blink 1.2s infinite;
   @keyframes blink {
