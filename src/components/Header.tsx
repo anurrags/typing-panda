@@ -1,7 +1,7 @@
 "use client";
 
 import { useTabStore, useUserStore } from "@/store";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import ProfileImage from "@/assets/profile-white.svg";
 import Link from "next/link";
@@ -11,6 +11,7 @@ import { useBannerStore } from "@/store/bannerStore";
 
 const Header: React.FC = () => {
   const { showBanner } = useBannerStore();
+  const setUser = useUserStore((state) => state.setUser);
   const firstName = useUserStore((state) => state.firstName);
   const { tab, setTab } = useTabStore((state) => state);
   const [showProfileOptions, setShowProfileOptions] = useState(false);
@@ -24,6 +25,21 @@ const Header: React.FC = () => {
       showBanner("You have been logged out successfully.", "success", 5000);
     }
   }
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (auth) {
+        const { data: profile } = await supabase
+          .from("Profile")
+          .select("firstName, username, lastName")
+          .eq("user_id", auth.id)
+          .single();
+        if (profile)
+          setUser(profile.firstName, profile.lastName, profile.username);
+      }
+    };
+    fetchUserProfile();
+  }, [auth, setUser]);
 
   return (
     <div className="fixed top-0 right-0 left-0 z-50 flex w-full justify-center p-4">

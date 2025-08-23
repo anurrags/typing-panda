@@ -74,18 +74,6 @@ export default function Login() {
           showBanner(error.message, "error", 15000);
           return;
         }
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from("Profile")
-            .select("firstName, username, lastName")
-            .eq("user_id", user.id)
-            .single();
-          if (profile)
-            setUser(profile.firstName, profile.lastName, profile.username);
-        }
         showBanner("You are Logged In successfully.", "success", 5000);
 
         router.push("/");
