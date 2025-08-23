@@ -4,6 +4,9 @@ import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { supabase } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/modules/hooks";
 
 type AuthMode = "login" | "signup";
 
@@ -20,10 +23,6 @@ const loginSchema = z.object(baseSchema);
 const signupSchema = z
   .object({
     ...baseSchema,
-    username: z
-      .string()
-      .min(3, "Username should be at least 3 characters")
-      .nonempty("Username is required"),
     confirmPassword: z.string().nonempty("Confirm password is required"),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -33,6 +32,14 @@ const signupSchema = z
 
 export default function Login() {
   const [mode, setMode] = useState<AuthMode>("login");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  const user = useAuth();
+  if (user) {
+    router.push("/");
+  }
 
   const schema = mode === "login" ? loginSchema : signupSchema;
   type LoginFormInputs = z.infer<typeof loginSchema>;
@@ -49,11 +56,44 @@ export default function Login() {
     resolver: zodResolver(schema),
   });
 
-  const onSubmit = (data: AuthFormInputs) => {
-    alert(`Login data:\n${JSON.stringify(data, null, 2)}`);
+  const onSubmit = async (data: AuthFormInputs) => {
+    setErrorMsg(null);
+    setLoading(true);
+    try {
+      if (mode === "login") {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: data.email!,
+          password: data.password!,
+        });
+        if (error) {
+          setErrorMsg(error.message);
+          alert(error.message);
+          return;
+        }
+        router.push("/");
+      } else {
+        // Signup flow
+        const { data: signUpData, error } = await supabase.auth.signUp({
+          email: data.email!,
+          password: data.password!,
+        });
+
+        if (error) {
+          setErrorMsg(error.message);
+          alert(error.message);
+          return;
+        }
+        alert("Signup successful! Please verify your email before logging in.");
+        setMode("login");
+        reset();
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
+    setErrorMsg(null);
     reset();
   }, [mode, reset]);
 
@@ -65,24 +105,6 @@ export default function Login() {
     >
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-4">
-          {mode === "signup" && (
-            <div className="flex flex-col gap-2">
-              <label className="text-grey-3 text-sm font-medium">
-                Username
-              </label>
-              <input
-                type="text"
-                placeholder="Enter your username"
-                {...register("username")}
-                className={`bg-grey-4 w-full rounded-md border p-2 ${errors.username ? "border-red-500" : "border-grey-3"} focus:border-cyan-1 transition focus:outline-none`}
-              />
-              {errors.username && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.username.message}
-                </p>
-              )}
-            </div>
-          )}
           <div className="flex flex-col gap-2">
             <label htmlFor="email" className="text-grey-3 text-sm font-medium">
               Email
@@ -144,7 +166,7 @@ export default function Login() {
           disabled={isSubmitting}
           className="bg-cyan-3 hover:ring-cyan-1 w-full rounded-md py-3 font-bold text-black transition-colors hover:cursor-pointer hover:ring-2 disabled:opacity-50"
         >
-          {mode === "login" ? "Login" : "Signup"}
+          {mode === "login" ? "Login" : "Sign Up"}
         </button>
       </div>
       <div className="flex justify-center gap-2">
@@ -155,10 +177,11 @@ export default function Login() {
         </p>
         <button
           type="button"
+          disabled={loading}
           onClick={() => setMode(mode === "login" ? "signup" : "login")}
           className="text-cyan-1 text-sm font-medium hover:cursor-pointer"
         >
-          {mode === "login" ? "Sign Up" : "Login"}
+          {loading ? "Loading" : mode === "login" ? "Sign Up" : "Login"}
         </button>
       </div>
     </form>
