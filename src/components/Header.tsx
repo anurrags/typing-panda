@@ -1,6 +1,6 @@
 "use client";
 
-import { useTabStore } from "@/store";
+import { useTabStore, useUserStore } from "@/store";
 import React, { useState } from "react";
 import Image from "next/image";
 import ProfileImage from "@/assets/profile-white.svg";
@@ -11,6 +11,7 @@ import { useBannerStore } from "@/store/bannerStore";
 
 const Header: React.FC = () => {
   const { showBanner } = useBannerStore();
+  const firstName = useUserStore((state) => state.firstName);
   const { tab, setTab } = useTabStore((state) => state);
   const [showProfileOptions, setShowProfileOptions] = useState(false);
   const auth = useAuth();
@@ -61,7 +62,10 @@ const Header: React.FC = () => {
             </ul>
           </div>
         </div>
-        <div>
+        <div className="flex items-center gap-4">
+          {auth && firstName && (
+            <span className="text-grey-3 mr-4">Hello, {firstName}!</span>
+          )}
           <div
             className="relative cursor-pointer py-4"
             onMouseEnter={() => setShowProfileOptions(true)}

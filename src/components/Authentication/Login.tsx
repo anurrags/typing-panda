@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/modules/hooks";
 import { useBannerStore } from "@/store/bannerStore";
+import { useUserStore } from "@/store";
 
 type AuthMode = "login" | "signup";
 
@@ -24,6 +25,9 @@ const loginSchema = z.object(baseSchema);
 const signupSchema = z
   .object({
     ...baseSchema,
+    username: z.string().nonempty("Username is required"),
+    firstName: z.string().nonempty("First name is required"),
+    lastName: z.string().nonempty("Last name is required"),
     confirmPassword: z.string().nonempty("Confirm password is required"),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -35,6 +39,7 @@ export default function Login() {
   const [mode, setMode] = useState<AuthMode>("login");
   const [loading, setLoading] = useState(false);
   const { showBanner } = useBannerStore();
+  const { setUser } = useUserStore();
   const router = useRouter();
 
   const user = useAuth();
@@ -69,11 +74,22 @@ export default function Login() {
           showBanner(error.message, "error", 15000);
           return;
         }
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from("Profile")
+            .select("firstName, username, lastName")
+            .eq("user_id", user.id)
+            .single();
+          if (profile)
+            setUser(profile.firstName, profile.lastName, profile.username);
+        }
         showBanner("You are Logged In successfully.", "success", 5000);
 
         router.push("/");
       } else {
-        // Signup flow
         const { data: signUpData, error } = await supabase.auth.signUp({
           email: data.email!,
           password: data.password!,
@@ -82,6 +98,18 @@ export default function Login() {
         if (error) {
           showBanner(error.message, "error", 15000);
           return;
+        }
+        if (signUpData?.user) {
+          await fetch("/api/create-profile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user_id: signUpData.user.id,
+              username: data.username!,
+              firstName: data.firstName!,
+              lastName: data.lastName!,
+            }),
+          });
         }
         showBanner(
           "You are signed Up successfully. Please check your inbox for verification email.",
@@ -109,6 +137,72 @@ export default function Login() {
       >
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-4">
+            {mode == "signup" && (
+              <div className="flex gap-4">
+                <div className="flex flex-col gap-2">
+                  <label
+                    htmlFor="firstname"
+                    className="text-grey-3 text-sm font-medium"
+                  >
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="First Name"
+                    id="firstName"
+                    {...register("firstName")}
+                    className={`bg-grey-4 w-full rounded-md border p-2 ${errors.firstName ? "border-red-500" : "border-grey-3"} focus:border-cyan-1 transition focus:outline-none`}
+                  />
+                  {errors.firstName && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.firstName.message}
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label
+                    htmlFor="lastName"
+                    className="text-grey-3 text-sm font-medium"
+                  >
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Last Name"
+                    id="lastName"
+                    {...register("lastName")}
+                    className={`bg-grey-4 w-full rounded-md border p-2 ${errors.lastName ? "border-red-500" : "border-grey-3"} focus:border-cyan-1 transition focus:outline-none`}
+                  />
+                  {errors.lastName && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.lastName.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+            {mode == "signup" && (
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="email"
+                  className="text-grey-3 text-sm font-medium"
+                >
+                  Username
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter your username"
+                  id="username"
+                  {...register("username")}
+                  className={`bg-grey-4 w-full rounded-md border p-2 ${errors.username ? "border-red-500" : "border-grey-3"} focus:border-cyan-1 transition focus:outline-none`}
+                />
+                {errors.username && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.username.message}
+                  </p>
+                )}
+              </div>
+            )}
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="email"
