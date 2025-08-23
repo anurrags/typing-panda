@@ -7,6 +7,9 @@ import * as z from "zod";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/modules/hooks";
+import { Banner } from "../Modal";
+import { BannerType } from "@/modules/types";
+import { useBannerStore } from "@/store/bannerStore";
 
 type AuthMode = "login" | "signup";
 
@@ -30,10 +33,14 @@ const signupSchema = z
     path: ["confirmPassword"],
   });
 
+type LoginProps = {
+  showBanner: (text: string, type: BannerType, time: number) => void;
+};
+
 export default function Login() {
   const [mode, setMode] = useState<AuthMode>("login");
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { showBanner } = useBannerStore();
   const router = useRouter();
 
   const user = useAuth();
@@ -57,7 +64,6 @@ export default function Login() {
   });
 
   const onSubmit = async (data: AuthFormInputs) => {
-    setErrorMsg(null);
     setLoading(true);
     try {
       if (mode === "login") {
@@ -66,10 +72,11 @@ export default function Login() {
           password: data.password!,
         });
         if (error) {
-          setErrorMsg(error.message);
-          alert(error.message);
+          showBanner(error.message, "error", 15000);
           return;
         }
+        showBanner("You are Logged In successfully.", "success", 5000);
+
         router.push("/");
       } else {
         // Signup flow
@@ -79,11 +86,14 @@ export default function Login() {
         });
 
         if (error) {
-          setErrorMsg(error.message);
-          alert(error.message);
+          showBanner(error.message, "error", 15000);
           return;
         }
-        alert("Signup successful! Please verify your email before logging in.");
+        showBanner(
+          "You are signed Up successfully. Please check your inbox for verification email.",
+          "success",
+          15000,
+        );
         setMode("login");
         reset();
       }
@@ -93,97 +103,101 @@ export default function Login() {
   };
 
   useEffect(() => {
-    setErrorMsg(null);
     reset();
   }, [mode, reset]);
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      noValidate
-      className="bg-dark-1 mx-auto flex w-md flex-col gap-4 rounded-lg p-8 shadow-2xl"
-    >
-      <div className="flex flex-col gap-4">
+    <>
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
+        className="bg-dark-1 mx-auto flex w-md flex-col gap-4 rounded-lg p-8 shadow-2xl"
+      >
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="email" className="text-grey-3 text-sm font-medium">
-              Email
-            </label>
-            <input
-              type="email"
-              placeholder="Enter your email"
-              id="email"
-              {...register("email")}
-              className={`bg-grey-4 w-full rounded-md border p-2 ${errors.email ? "border-red-500" : "border-grey-3"} focus:border-cyan-1 transition focus:outline-none`}
-            />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.email.message}
-              </p>
-            )}
-          </div>
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="password"
-              className="text-grey-3 text-sm font-medium"
-            >
-              Password
-            </label>
-            <input
-              type="password"
-              placeholder="Enter your password"
-              id="password"
-              {...register("password")}
-              className={`bg-grey-4 w-full rounded-md border p-2.5 ${errors.password ? "border-red-500" : "border-grey-3"} focus:border-cyan-1 transition focus:outline-none`}
-            />
-            {errors.password && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.password.message}
-              </p>
-            )}
-          </div>
-          {mode === "signup" && (
+          <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <label className="text-grey-3 text-sm font-medium">
-                Confirm Password
+              <label
+                htmlFor="email"
+                className="text-grey-3 text-sm font-medium"
+              >
+                Email
               </label>
               <input
-                type="password"
-                placeholder="Confirm your password"
-                {...register("confirmPassword")}
-                className={`bg-grey-4 w-full rounded-md border p-2.5 ${errors.confirmPassword ? "border-red-500" : "border-grey-3"} focus:border-cyan-1 transition focus:outline-none`}
+                type="email"
+                placeholder="Enter your email"
+                id="email"
+                {...register("email")}
+                className={`bg-grey-4 w-full rounded-md border p-2 ${errors.email ? "border-red-500" : "border-grey-3"} focus:border-cyan-1 transition focus:outline-none`}
               />
-              {errors.confirmPassword && (
+              {errors.email && (
                 <p className="mt-1 text-sm text-red-600">
-                  {errors.confirmPassword.message}
+                  {errors.email.message}
                 </p>
               )}
             </div>
-          )}
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor="password"
+                className="text-grey-3 text-sm font-medium"
+              >
+                Password
+              </label>
+              <input
+                type="password"
+                placeholder="Enter your password"
+                id="password"
+                {...register("password")}
+                className={`bg-grey-4 w-full rounded-md border p-2.5 ${errors.password ? "border-red-500" : "border-grey-3"} focus:border-cyan-1 transition focus:outline-none`}
+              />
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.password.message}
+                </p>
+              )}
+            </div>
+            {mode === "signup" && (
+              <div className="flex flex-col gap-2">
+                <label className="text-grey-3 text-sm font-medium">
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  placeholder="Confirm your password"
+                  {...register("confirmPassword")}
+                  className={`bg-grey-4 w-full rounded-md border p-2.5 ${errors.confirmPassword ? "border-red-500" : "border-grey-3"} focus:border-cyan-1 transition focus:outline-none`}
+                />
+                {errors.confirmPassword && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.confirmPassword.message}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="bg-cyan-3 hover:ring-cyan-1 w-full rounded-md py-3 font-bold text-black transition-colors hover:cursor-pointer hover:ring-2 disabled:opacity-50"
+          >
+            {mode === "login" ? "Login" : "Sign Up"}
+          </button>
         </div>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="bg-cyan-3 hover:ring-cyan-1 w-full rounded-md py-3 font-bold text-black transition-colors hover:cursor-pointer hover:ring-2 disabled:opacity-50"
-        >
-          {mode === "login" ? "Login" : "Sign Up"}
-        </button>
-      </div>
-      <div className="flex justify-center gap-2">
-        <p className="text-grey-3 text-sm">
-          {mode === "login"
-            ? "Don't have an account?"
-            : "Already have an account?"}
-        </p>
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => setMode(mode === "login" ? "signup" : "login")}
-          className="text-cyan-1 text-sm font-medium hover:cursor-pointer"
-        >
-          {loading ? "Loading" : mode === "login" ? "Sign Up" : "Login"}
-        </button>
-      </div>
-    </form>
+        <div className="flex justify-center gap-2">
+          <p className="text-grey-3 text-sm">
+            {mode === "login"
+              ? "Don't have an account?"
+              : "Already have an account?"}
+          </p>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => setMode(mode === "login" ? "signup" : "login")}
+            className="text-cyan-1 text-sm font-medium hover:cursor-pointer"
+          >
+            {loading ? "Loading" : mode === "login" ? "Sign Up" : "Login"}
+          </button>
+        </div>
+      </form>
+    </>
   );
 }

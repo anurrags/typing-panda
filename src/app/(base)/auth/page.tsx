@@ -1,7 +1,7 @@
 import { Login } from "@/components";
 import React from "react";
 
-const page = () => {
+const Page = () => {
   return (
     <div className="flex h-[95vh] flex-col items-center justify-center">
       <Login />
@@ -9,4 +9,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;

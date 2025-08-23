@@ -1,4 +1,3 @@
-"use client";
 import { TestDuration, TypingTest } from "@/components";
 
 export default function Home() {
