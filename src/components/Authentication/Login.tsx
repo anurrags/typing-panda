@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/modules/hooks";
 import { useBannerStore } from "@/store/bannerStore";
 import { useUserStore } from "@/store";
+import { BeatLoader, ClipLoader } from "react-spinners";
 
 type AuthMode = "login" | "signup";
 
@@ -39,7 +40,6 @@ export default function Login() {
   const [mode, setMode] = useState<AuthMode>("login");
   const [loading, setLoading] = useState(false);
   const { showBanner } = useBannerStore();
-  const { setUser } = useUserStore();
   const router = useRouter();
 
   const user = useAuth();
@@ -76,7 +76,7 @@ export default function Login() {
         }
         showBanner("You are Logged In successfully.", "success", 5000);
 
-        router.push("/");
+        // router.push("/");
       } else {
         const { data: signUpData, error } = await supabase.auth.signUp({
           email: data.email!,
@@ -253,9 +253,15 @@ export default function Login() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="bg-cyan-3 hover:ring-cyan-1 w-full rounded-md py-3 font-bold text-black transition-colors hover:cursor-pointer hover:ring-2 disabled:opacity-50"
+            className="bg-cyan-3 hover:ring-cyan-1 w-full rounded-md py-3 font-bold text-white transition-colors hover:cursor-pointer hover:ring-2 disabled:opacity-50"
           >
-            {mode === "login" ? "Login" : "Sign Up"}
+            {isSubmitting ? (
+              <BeatLoader size={10} color="#fff" />
+            ) : mode === "login" ? (
+              "Login"
+            ) : (
+              "Sign Up"
+            )}
           </button>
         </div>
         <div className="flex justify-center gap-2">
