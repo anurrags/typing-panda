@@ -1,7 +1,10 @@
+"use client";
+
+import React, { useEffect, useRef } from "react";
 import { TestStats } from "@/modules/types";
 import { ArrowPathIcon } from "@heroicons/react/20/solid";
-import React, { useEffect } from "react";
 import { LineChart } from "../Graph";
+import { supabase } from "@/lib/supabaseClient";
 
 type ReportProps = {
   testStat: TestStats;
@@ -9,11 +12,53 @@ type ReportProps = {
 };
 
 const Report = ({ testStat, onRestart }: ReportProps) => {
-  const retestButtonRef = React.useRef<HTMLButtonElement | null>(null);
+  const hasInserted = useRef(false);
 
   useEffect(() => {
-    retestButtonRef.current?.focus();
-  }, []);
+    const insertTestData = async () => {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        console.error("User not logged in", userError);
+        return;
+      }
+      if (testStat.meanWpm === 0) {
+        return;
+      }
+
+      const { error } = await supabase.from("testData").insert([
+        {
+          user_id: user.id,
+          testId: testStat.testId,
+          testType: testStat.testType,
+          testTypeValue: testStat.testTypeValue,
+          meanWpm: testStat.meanWpm,
+          meanRawWpm: testStat.meanRawWpm,
+          accuracy: testStat.accuracy,
+          testTime: testStat.testTime,
+          charsTyped: testStat.charsTyped,
+          correctChars: testStat.correctChars,
+          incorrectChars: testStat.incorrectChars,
+          extraChars: testStat.extraChars,
+          statsPerSecond: testStat.statsPerSecond,
+        },
+      ]);
+
+      if (error) {
+        console.error("Insert error:", error);
+      } else {
+        console.log("Insert success");
+      }
+    };
+
+    if (!hasInserted.current) {
+      hasInserted.current = true;
+      insertTestData();
+    }
+  }, [testStat]);
 
   return (
     <div className="flex flex-col items-center gap-8 select-none">
@@ -62,7 +107,6 @@ const Report = ({ testStat, onRestart }: ReportProps) => {
       </div>
       <div className="flex items-center gap-4">
         <button
-          ref={retestButtonRef}
           tabIndex={0}
           className="cursor-pointer rounded-full p-2"
           onClick={onRestart}

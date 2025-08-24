@@ -68,7 +68,7 @@ body {
     @apply text-grey-1 text-base font-medium;
   }
   .test-report-value {
-    @apply text-cyan-1 text-3xl font-semibold;
+    @apply text-cyan-1 text-4xl font-semibold;
   }
 }
 

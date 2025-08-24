@@ -51,7 +51,7 @@ const LineChartComp = ({ testStat }: LineChartProps) => {
 
   return (
     <div
-      className="h-64 max-w-lg min-w-[60vw] rounded-lg bg-[#232429] p-4"
+      className="h-86 max-w-lg min-w-[60vw] rounded-lg bg-[#232429] p-4"
       ref={containerRef}
     >
       <ResponsiveContainer width="100%" height="100%">
