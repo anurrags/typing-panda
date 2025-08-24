@@ -5,6 +5,8 @@ import { TestStats } from "@/modules/types";
 import { ArrowPathIcon } from "@heroicons/react/20/solid";
 import { LineChart } from "../Graph";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/modules/hooks";
+import Link from "next/link";
 
 type ReportProps = {
   testStat: TestStats;
@@ -13,6 +15,7 @@ type ReportProps = {
 
 const Report = ({ testStat, onRestart }: ReportProps) => {
   const hasInserted = useRef(false);
+  const auth = useAuth();
 
   useEffect(() => {
     const insertTestData = async () => {
@@ -22,7 +25,6 @@ const Report = ({ testStat, onRestart }: ReportProps) => {
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        console.error("User not logged in", userError);
         return;
       }
       if (testStat.meanWpm === 0) {
@@ -114,6 +116,16 @@ const Report = ({ testStat, onRestart }: ReportProps) => {
           <ArrowPathIcon className="text-grey-1 h-8 w-8" />
         </button>
       </div>
+      {!auth && (
+        <div>
+          <p className="text-grey-5 text-xl">
+            <Link className="underline" href={"/auth"}>
+              Log in
+            </Link>{" "}
+            to save your progress
+          </p>
+        </div>
+      )}
     </div>
   );
 };

@@ -20,7 +20,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-[90vh] flex-col justify-center">
+    <div className="mt-16 flex min-h-[90vh] flex-col justify-center">
       {testResult ? (
         <Report testStat={testResult} onRestart={handleTestRestart} />
       ) : (
