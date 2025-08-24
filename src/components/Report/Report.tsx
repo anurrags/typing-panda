@@ -1,7 +1,6 @@
 import { TestStats } from "@/modules/types";
-import { useTestDataStore } from "@/store";
 import { ArrowPathIcon } from "@heroicons/react/20/solid";
-import React from "react";
+import React, { useEffect } from "react";
 import { LineChart } from "../Graph";
 
 type ReportProps = {
@@ -10,48 +9,65 @@ type ReportProps = {
 };
 
 const Report = ({ testStat, onRestart }: ReportProps) => {
+  const retestButtonRef = React.useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    retestButtonRef.current?.focus();
+  }, []);
+
   return (
-    <div className="flex flex-col items-center gap-8">
+    <div className="flex flex-col items-center gap-8 select-none">
       <div className="flex flex-col items-center justify-center gap-4">
         <div className="flex gap-8">
           <div className="flex flex-col gap-4 self-center">
             <div className="flex flex-col items-center">
-              <p>WPM</p>
-              <p>{testStat.meanWpm}</p>
+              <p className="test-report-label">wpm</p>
+              <p className="test-report-value">{testStat.meanWpm}</p>
             </div>
             <div className="flex flex-col items-center">
-              <p>Acc</p>
-              <p>{testStat.accuracy}%</p>
+              <p className="test-report-label">acc</p>
+              <p className="test-report-value">{testStat.accuracy}%</p>
             </div>
           </div>
-          <LineChart testStat={testStat.statsPerSecond} />
+          <div tabIndex={-1}>
+            <LineChart testStat={testStat.statsPerSecond} />
+          </div>
         </div>
-        <div className="flex gap-16">
+        <div className="flex justify-center gap-16">
           <div className="flex flex-col items-center">
-            <p>Test Type</p>
-            <p>
+            <p className="test-report-label">raw</p>
+            <p className="test-report-value">{testStat.meanRawWpm}</p>
+          </div>
+          <div className="flex flex-col items-center">
+            <p className="test-report-label">characters</p>
+            <div className="test-report-value">
+              <span className="text-green-400">{testStat.correctChars}</span>/
+              <span className="text-red-400">{testStat.incorrectChars}</span>/
+              <span className="text-grey-3">{testStat.extraChars}</span>
+            </div>
+          </div>
+          <div className="flex flex-col items-center">
+            <p className="test-report-label">time</p>
+            <p className="test-report-value">{testStat.testTime}s</p>
+          </div>
+          <div className="flex flex-col items-center">
+            <p className="test-report-label">type</p>
+            <p className="test-report-value">
               {testStat.testType === "time"
-                ? `Time - ${testStat.testTypeValue} sec`
-                : `Words - ${testStat.testTypeValue} words`}
+                ? `${testStat.testTypeValue} sec`
+                : `${testStat.testTypeValue} words`}
             </p>
-          </div>
-          <div className="flex flex-col items-center">
-            <p>Raw</p>
-            <p>{testStat.meanRawWpm}</p>
-          </div>
-          <div className="flex flex-col items-center">
-            <p>Characters</p>
-            <p>{`${testStat.correctChars}/${testStat.incorrectChars}/${testStat.extraChars}`}</p>
-          </div>
-          <div className="flex flex-col items-center">
-            <p>Time</p>
-            <p>{testStat.testTime}s</p>
           </div>
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <button className="cursor-pointer rounded-full p-2" onClick={onRestart}>
-          <ArrowPathIcon className="text-cyan-1 h-8 w-8" />
+        <button
+          ref={retestButtonRef}
+          tabIndex={0}
+          className="cursor-pointer rounded-full p-2"
+          onClick={onRestart}
+        >
+          <ArrowPathIcon className="text-grey-1 h-8 w-8" />
         </button>
       </div>
     </div>

@@ -64,6 +64,12 @@ body {
   .caret {
     @apply animate-blink absolute inline-block h-8 w-[2px] bg-white;
   }
+  .test-report-label {
+    @apply text-grey-1 text-base font-medium;
+  }
+  .test-report-value {
+    @apply text-cyan-1 text-3xl font-semibold;
+  }
 }
 
 @base {

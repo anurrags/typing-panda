@@ -273,6 +273,8 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
 
       const finalStats = {
         ...testStats,
+        testType: testDuration.type,
+        testTypeValue: testDuration.value,
         meanWpm: wpm,
         meanRawWpm: rawWpm,
         accuracy: accuracy,
@@ -373,6 +375,13 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
     },
     [testEnded, setTestStarted, testStarted],
   );
+
+  const handleTestDivClick = useCallback(() => {
+    const typingContainer = typingContainerRef.current;
+    if (typingContainer) {
+      typingContainer.focus();
+    }
+  }, []);
 
   useEffect(() => {
     const typingContainer = typingContainerRef.current;
@@ -484,6 +493,7 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
       <div className="relative h-36 w-full">
         <div
           ref={typingContainerRef}
+          onClick={handleTestDivClick}
           tabIndex={0}
           className="text-grey-2 absolute inset-0 flex flex-wrap overflow-y-hidden font-mono leading-relaxed whitespace-pre-wrap select-none focus:outline-none"
         >
@@ -508,7 +518,7 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
             !testEnded &&
             isFocused && <Carat />}
         </div>
-        {!isFocused && <BlurOverlay />}
+        {!isFocused && <BlurOverlay onClick={handleTestDivClick} />}
       </div>
       <div className="flex items-center gap-4">
         <button
