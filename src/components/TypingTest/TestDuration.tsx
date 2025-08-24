@@ -17,12 +17,6 @@ const TestDuration = () => {
         <h3>Words:</h3>
         <ul className="text-grey-2 flex gap-2">
           <li
-            className={`cursor-pointer ${testDuration.type === "words" && testDuration.value === 10 ? "text-cyan-2" : ""}`}
-            onClick={() => handleTestDuration("words", 10)}
-          >
-            10
-          </li>
-          <li
             className={`cursor-pointer ${testDuration.type === "words" && testDuration.value === 25 ? "text-cyan-2" : ""}`}
             onClick={() => handleTestDuration("words", 25)}
           >

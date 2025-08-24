@@ -6,11 +6,11 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { getWordsArray } from "../modules/util";
-import { BlurOverlay, Carat, CharacterRenderer } from "./";
+import { BlurOverlay, Carat, CharacterRenderer } from "../";
 import { TestStats } from "@/modules/types";
 import { ArrowPathIcon } from "@heroicons/react/20/solid";
 import { useTestDataStore, useTestDurationStore } from "@/store";
+import { getWordsArray } from "@/modules/util";
 
 interface TestState {
   wordsArray: string[];
@@ -18,7 +18,11 @@ interface TestState {
   currentIndex: number;
 }
 
-const TypingTest: React.FC = () => {
+type TypingTestProps = {
+  onTestComplete: (stats: TestStats | null) => void;
+};
+
+const TypingTest = ({ onTestComplete }: TypingTestProps) => {
   const testDuration = useTestDurationStore.getState().testDuration;
   const { testStarted, testEnded, setTestStarted, setTestEnded } =
     useTestDataStore();
@@ -32,6 +36,8 @@ const TypingTest: React.FC = () => {
   const [isFocused, setIsFocused] = useState(true);
   const [testStats, setTestStats] = useState<TestStats>({
     testId: "",
+    testType: testDuration.type,
+    testTypeValue: testDuration.value,
     meanWpm: 0,
     meanRawWpm: 0,
     accuracy: 0,
@@ -265,8 +271,10 @@ const TypingTest: React.FC = () => {
               ((correctChars + spacesTyped) / (charsTyped + spacesTyped)) * 100,
             );
 
-      setTestStats((prev) => ({
-        ...prev,
+      const finalStats = {
+        ...testStats,
+        testType: testDuration.type,
+        testTypeValue: testDuration.value,
         meanWpm: wpm,
         meanRawWpm: rawWpm,
         accuracy: accuracy,
@@ -276,8 +284,11 @@ const TypingTest: React.FC = () => {
         incorrectChars: incorrectChars,
         extraChars: extraChars,
         testDate: new Date(),
-      }));
+      };
+
+      setTestStats(finalStats);
       setTestStarted(false);
+      onTestComplete(finalStats);
     }
   }, [testEnded]);
 
@@ -365,6 +376,13 @@ const TypingTest: React.FC = () => {
     [testEnded, setTestStarted, testStarted],
   );
 
+  const handleTestDivClick = useCallback(() => {
+    const typingContainer = typingContainerRef.current;
+    if (typingContainer) {
+      typingContainer.focus();
+    }
+  }, []);
+
   useEffect(() => {
     const typingContainer = typingContainerRef.current;
     const handleFocus = () => {
@@ -432,6 +450,8 @@ const TypingTest: React.FC = () => {
 
     setTestStats({
       testId: "",
+      testType: testDuration.type,
+      testTypeValue: testDuration.value,
       meanWpm: 0,
       meanRawWpm: 0,
       accuracy: 0,
@@ -448,6 +468,7 @@ const TypingTest: React.FC = () => {
       wordIndex: 0,
       charIndex: -1,
     };
+    onTestComplete(null);
   }, [setTestStarted, setTestEnded, testDuration]);
 
   return (
@@ -472,6 +493,7 @@ const TypingTest: React.FC = () => {
       <div className="relative h-36 w-full">
         <div
           ref={typingContainerRef}
+          onClick={handleTestDivClick}
           tabIndex={0}
           className="text-grey-2 absolute inset-0 flex flex-wrap overflow-y-hidden font-mono leading-relaxed whitespace-pre-wrap select-none focus:outline-none"
         >
@@ -496,7 +518,7 @@ const TypingTest: React.FC = () => {
             !testEnded &&
             isFocused && <Carat />}
         </div>
-        {!isFocused && <BlurOverlay />}
+        {!isFocused && <BlurOverlay onClick={handleTestDivClick} />}
       </div>
       <div className="flex items-center gap-4">
         <button
