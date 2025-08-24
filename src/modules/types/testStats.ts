@@ -1,5 +1,8 @@
+export type TestType = "words" | "time";
 export type TestStats = {
   testId: string;
+  testType: TestType;
+  testTypeValue: number;
   meanWpm: number;
   meanRawWpm: number;
   accuracy: number;

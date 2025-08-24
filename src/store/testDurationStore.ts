@@ -1,7 +1,8 @@
+import { TestType } from "@/modules/types";
 import { create } from "zustand";
 
 type TestDuration = {
-  type: "time" | "words";
+  type: TestType;
   value: number;
 };
 
