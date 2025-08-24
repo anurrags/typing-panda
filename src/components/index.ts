@@ -5,3 +5,5 @@ export { default as Footer } from "./Footer";
 export { default as CharacterRenderer } from "./CharacterRenderer";
 export { default as BlurOverlay } from "./BlurOverlay";
 export { default as TestDuration } from "./TestDuration";
+export * from "./Authentication";
+export * from "./Modal";

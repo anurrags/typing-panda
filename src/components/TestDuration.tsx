@@ -1,3 +1,4 @@
+"use client";
 import { useTestDataStore, useTestDurationStore } from "@/store";
 import React from "react";
 
