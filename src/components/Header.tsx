@@ -80,7 +80,7 @@ const Header: React.FC = () => {
         </div>
         <div className="flex items-center gap-4">
           {auth && firstName && (
-            <span className="text-grey-3 mr-4">Hello, {firstName}!</span>
+            <span className="mr-4 text-white">Hello, {firstName}!</span>
           )}
           <div
             className="relative cursor-pointer py-4"
