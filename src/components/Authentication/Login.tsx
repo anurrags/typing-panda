@@ -120,7 +120,7 @@ export default function Login() {
       <form
         onSubmit={handleSubmit(onSubmit)}
         noValidate
-        className="bg-dark-1 mx-auto flex w-md flex-col gap-4 rounded-lg p-8 shadow-2xl"
+        className="bg-dark-1 mx-auto flex w-md flex-col gap-4 rounded-lg p-8"
       >
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-4">

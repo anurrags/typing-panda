@@ -3,7 +3,7 @@ import React from "react";
 
 const Page = () => {
   return (
-    <div className="flex h-[90vh] flex-col items-center justify-center">
+    <div className="flex min-h-[85vh] flex-col items-center justify-center">
       <Login />
     </div>
   );

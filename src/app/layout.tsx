@@ -47,7 +47,7 @@ export default function RootLayout({
       >
         <Header />
         <Banner />
-        <div className="mt-20 min-h-[90vh]">{children}</div>
+        <div className="mt-20 min-h-[85vh]">{children}</div>
         <Footer />
       </body>
     </html>
