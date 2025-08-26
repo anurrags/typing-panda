@@ -1,6 +1,5 @@
 "use client";
 
-import { StatsPerSecond } from "@/modules/types";
 import React, { useEffect, useRef } from "react";
 import {
   Legend,
@@ -11,6 +10,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+
+import { StatsPerSecond } from "@/modules/types";
 type LineChartProps = {
   testStat: StatsPerSecond[];
 };

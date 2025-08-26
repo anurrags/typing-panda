@@ -1,2 +1,2 @@
-export * from "./getParagraphArray";
 export * from "./dateTimeFormatter";
+export * from "./getParagraphArray";

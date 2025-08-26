@@ -1,4 +1,5 @@
 import englishWords from "@/data/english_1k.json";
+
 import { ParagraphState } from "../types";
 
 const words = englishWords.words;

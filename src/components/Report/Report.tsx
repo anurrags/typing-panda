@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
-import { TestStats } from "@/modules/types";
 import { ArrowPathIcon } from "@heroicons/react/20/solid";
-import { LineChart } from "../Graph";
+import Link from "next/link";
+import React, { useEffect, useRef } from "react";
+
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/modules/hooks";
-import Link from "next/link";
+import { TestStats } from "@/modules/types";
+
+import { LineChart } from "../Graph";
 
 type ReportProps = {
   testStat: TestStats;

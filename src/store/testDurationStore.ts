@@ -1,5 +1,6 @@
-import { TestType } from "@/modules/types";
 import { create } from "zustand";
+
+import { TestType } from "@/modules/types";
 
 type TestDuration = {
   type: TestType;

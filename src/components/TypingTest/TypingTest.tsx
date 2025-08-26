@@ -1,4 +1,5 @@
 "use client";
+import { ArrowPathIcon } from "@heroicons/react/20/solid";
 import React, {
   useCallback,
   useEffect,
@@ -6,11 +7,12 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { BlurOverlay, Carat, CharacterRenderer } from "../";
+
 import { TestStats } from "@/modules/types";
-import { ArrowPathIcon } from "@heroicons/react/20/solid";
-import { useTestDataStore, useTestDurationStore } from "@/store";
 import { getWordsArray } from "@/modules/util";
+import { useTestDataStore, useTestDurationStore } from "@/store";
+
+import { BlurOverlay, Carat, CharacterRenderer } from "../";
 
 interface TestState {
   wordsArray: string[];

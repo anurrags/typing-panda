@@ -1,5 +1,6 @@
-import { Login } from "@/components";
 import React from "react";
+
+import { Login } from "@/components";
 
 const Page = () => {
   return (

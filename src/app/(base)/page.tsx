@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
+
 import { TestDuration, TypingTest } from "@/components";
 import { Report } from "@/components/Report";
 import { TestStats } from "@/modules/types";
 import { useTestDataStore } from "@/store";
-import { useState } from "react";
 
 export default function Home() {
   const [testResult, setTestResult] = useState<TestStats | null>(null);

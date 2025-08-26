@@ -1,6 +1,7 @@
+import React from "react";
+
 import { TestStats } from "@/modules/types";
 import { beautifyAndConvertToIST } from "@/modules/util";
-import React from "react";
 
 const HistoryRow = (item: TestStats, index: number) => {
   return (

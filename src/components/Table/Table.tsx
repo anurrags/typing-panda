@@ -1,5 +1,6 @@
-import { TableProps } from "@/modules/types";
 import React from "react";
+
+import { TableProps } from "@/modules/types";
 
 const Table = <T,>({ headers, data, renderRow }: TableProps<T>) => {
   return (

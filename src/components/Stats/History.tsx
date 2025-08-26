@@ -1,6 +1,5 @@
-import { OverAllStats, PersonalBest, TestStats } from "@/modules/types";
 import React from "react";
-import { Table } from "../Table";
+
 import {
   OVERALL_STATS_FIRST_ROW,
   OVERALL_STATS_SECOND_ROW_1,
@@ -8,8 +7,11 @@ import {
   OVERALL_STATS_THIRD_ROW,
   TEST_HISTORY_HEADER,
 } from "@/modules/constants";
-import HistoryRow from "./HistoryRow";
+import { OverAllStats, PersonalBest, TestStats } from "@/modules/types";
 import { useUserStore } from "@/store";
+
+import { Table } from "../Table";
+import HistoryRow from "./HistoryRow";
 
 type Props = {
   data: TestStats[];

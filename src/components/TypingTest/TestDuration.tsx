@@ -1,6 +1,7 @@
 "use client";
-import { useTestDataStore, useTestDurationStore } from "@/store";
 import React from "react";
+
+import { useTestDataStore, useTestDurationStore } from "@/store";
 
 const TestDuration = () => {
   const { testDuration, setTestDuration } = useTestDurationStore();

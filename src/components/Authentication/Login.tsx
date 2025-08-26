@@ -1,14 +1,15 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { BeatLoader } from "react-spinners";
 import * as z from "zod";
+
 import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/modules/hooks";
 import { useBannerStore } from "@/store/bannerStore";
-import { BeatLoader } from "react-spinners";
 
 type AuthMode = "login" | "signup";
 

@@ -1,11 +1,12 @@
 "use client";
 
+import React, { useEffect } from "react";
+import { MoonLoader } from "react-spinners";
+
 import { History } from "@/components";
 import { supabase } from "@/lib/supabaseClient";
 import { OverAllStats, TestStats } from "@/modules/types";
 import { getOverallStats } from "@/modules/util/getOverallStats";
-import React, { useEffect } from "react";
-import { MoonLoader } from "react-spinners";
 
 const Page = () => {
   const [data, setData] = React.useState<TestStats[]>([]);

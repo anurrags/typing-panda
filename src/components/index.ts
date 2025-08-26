@@ -1,11 +1,11 @@
-export { default as Carat } from "./Carat";
-export * from "./TypingTest";
-export { default as Header } from "./Header";
-export { default as Footer } from "./Footer";
-export { default as CharacterRenderer } from "./CharacterRenderer";
-export { default as BlurOverlay } from "./BlurOverlay";
 export * from "./Authentication";
-export * from "./Modal";
+export { default as BlurOverlay } from "./BlurOverlay";
+export { default as Carat } from "./Carat";
+export { default as CharacterRenderer } from "./CharacterRenderer";
+export { default as Footer } from "./Footer";
 export * from "./Graph";
+export { default as Header } from "./Header";
+export * from "./Modal";
 export * from "./Stats";
 export * from "./Table";
+export * from "./TypingTest";

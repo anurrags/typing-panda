@@ -1,12 +1,13 @@
 "use client";
 
-import { useTabStore, useUserStore } from "@/store";
-import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import ProfileImage from "@/assets/profile-white.svg";
 import Link from "next/link";
-import { useAuth } from "@/modules/hooks";
+import React, { useEffect, useState } from "react";
+
+import ProfileImage from "@/assets/profile-white.svg";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/modules/hooks";
+import { useTabStore, useUserStore } from "@/store";
 import { useBannerStore } from "@/store/bannerStore";
 
 const Header: React.FC = () => {
