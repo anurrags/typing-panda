@@ -48,7 +48,7 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
     correctChars: 0,
     incorrectChars: 0,
     extraChars: 0,
-    testDate: new Date(),
+    created_at: new Date().toISOString(),
     statsPerSecond: [],
   });
 
@@ -462,7 +462,7 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
       correctChars: 0,
       incorrectChars: 0,
       extraChars: 0,
-      testDate: new Date(),
+      created_at: new Date().toISOString(),
       statsPerSecond: [],
     });
     typingContainerRef.current?.focus();
