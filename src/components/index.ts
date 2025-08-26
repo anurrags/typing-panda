@@ -7,3 +7,5 @@ export { default as BlurOverlay } from "./BlurOverlay";
 export * from "./Authentication";
 export * from "./Modal";
 export * from "./Graph";
+export * from "./Stats";
+export * from "./Table";

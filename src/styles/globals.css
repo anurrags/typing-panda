@@ -72,6 +72,15 @@ body {
   .test-report-value {
     @apply text-cyan-1 text-4xl font-semibold;
   }
+  .overall-stats-container {
+    @apply flex flex-col items-center justify-center gap-2;
+  }
+  .overall-stats-label {
+    @apply text-grey-3 text-base font-medium;
+  }
+  .overall-stats-value {
+    @apply text-2xl font-semibold text-white;
+  }
 }
 
 @base {

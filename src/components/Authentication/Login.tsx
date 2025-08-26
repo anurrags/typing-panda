@@ -8,8 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/modules/hooks";
 import { useBannerStore } from "@/store/bannerStore";
-import { useUserStore } from "@/store";
-import { BeatLoader, ClipLoader } from "react-spinners";
+import { BeatLoader } from "react-spinners";
 
 type AuthMode = "login" | "signup";
 

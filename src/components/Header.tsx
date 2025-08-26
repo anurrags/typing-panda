@@ -45,10 +45,10 @@ const Header: React.FC = () => {
     <div className="fixed top-0 right-0 left-0 z-50 flex w-full justify-center p-4">
       <div className="bg-dark-1 max-auto flex w-full items-center justify-between rounded-lg px-12">
         <div className="flex items-center gap-12 py-4">
-          <div className="flex items-center gap-1">
+          <Link href={"/"} className="flex items-center gap-1">
             <Image src="/panda.svg" alt="icon" width={32} height={32} />
             <h1 className="text-2xl font-bold">Typing Panda</h1>
-          </div>
+          </Link>
           <div>
             <ul className="flex items-center gap-4 text-xl">
               <li
@@ -93,7 +93,7 @@ const Header: React.FC = () => {
                 {auth ? (
                   <div>
                     <Link
-                      href="/profile"
+                      href="/stats"
                       className="flex items-center gap-3 rounded-t-md px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-emerald-500 hover:text-gray-900"
                     >
                       <svg
