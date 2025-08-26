@@ -1,7 +1,8 @@
 "use client";
 
-import { useBannerStore } from "@/store/bannerStore";
 import React, { useEffect, useState } from "react";
+
+import { useBannerStore } from "@/store/bannerStore";
 
 const baseStyles = `fixed top-15 left-1/2 z-50 text-black max-w-[80vw] py-2 px-4 rounded-lg flex items-center justify-center shadow-md transform -translate-x-1/2 border-4`;
 

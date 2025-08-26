@@ -1,14 +1,15 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { BeatLoader } from "react-spinners";
 import * as z from "zod";
+
 import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/modules/hooks";
 import { useBannerStore } from "@/store/bannerStore";
-import { useUserStore } from "@/store";
 
 type AuthMode = "login" | "signup";
 
@@ -39,7 +40,6 @@ export default function Login() {
   const [mode, setMode] = useState<AuthMode>("login");
   const [loading, setLoading] = useState(false);
   const { showBanner } = useBannerStore();
-  const { setUser } = useUserStore();
   const router = useRouter();
 
   const user = useAuth();
@@ -76,7 +76,7 @@ export default function Login() {
         }
         showBanner("You are Logged In successfully.", "success", 5000);
 
-        router.push("/");
+        // router.push("/");
       } else {
         const { data: signUpData, error } = await supabase.auth.signUp({
           email: data.email!,
@@ -121,7 +121,7 @@ export default function Login() {
       <form
         onSubmit={handleSubmit(onSubmit)}
         noValidate
-        className="bg-dark-1 mx-auto flex w-md flex-col gap-4 rounded-lg p-8 shadow-2xl"
+        className="bg-dark-1 mx-auto flex w-md flex-col gap-4 rounded-lg p-8"
       >
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-4">
@@ -253,9 +253,15 @@ export default function Login() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="bg-cyan-3 hover:ring-cyan-1 w-full rounded-md py-3 font-bold text-black transition-colors hover:cursor-pointer hover:ring-2 disabled:opacity-50"
+            className="bg-cyan-3 hover:ring-cyan-1 w-full rounded-md py-3 font-bold text-white transition-colors hover:cursor-pointer hover:ring-2 disabled:opacity-50"
           >
-            {mode === "login" ? "Login" : "Sign Up"}
+            {isSubmitting ? (
+              <BeatLoader size={10} color="#fff" />
+            ) : mode === "login" ? (
+              "Login"
+            ) : (
+              "Sign Up"
+            )}
           </button>
         </div>
         <div className="flex justify-center gap-2">

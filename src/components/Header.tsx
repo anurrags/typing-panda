@@ -1,12 +1,13 @@
 "use client";
 
-import { useTabStore, useUserStore } from "@/store";
-import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import ProfileImage from "@/assets/profile-white.svg";
 import Link from "next/link";
-import { useAuth } from "@/modules/hooks";
+import React, { useEffect, useState } from "react";
+
+import ProfileImage from "@/assets/profile-white.svg";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/modules/hooks";
+import { useTabStore, useUserStore } from "@/store";
 import { useBannerStore } from "@/store/bannerStore";
 
 const Header: React.FC = () => {
@@ -15,7 +16,18 @@ const Header: React.FC = () => {
   const firstName = useUserStore((state) => state.firstName);
   const { tab, setTab } = useTabStore((state) => state);
   const [showProfileOptions, setShowProfileOptions] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const auth = useAuth();
+
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+
+    window.addEventListener("scroll", onScroll);
+
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   async function logout() {
     const { error } = await supabase.auth.signOut();
@@ -42,13 +54,19 @@ const Header: React.FC = () => {
   }, [auth, setUser]);
 
   return (
-    <div className="fixed top-0 right-0 left-0 z-50 flex w-full justify-center p-4">
-      <div className="bg-dark-1 max-auto flex w-full items-center justify-between rounded-lg px-12">
+    <div
+      className={`${scrolled && "bg-background"} fixed top-0 right-0 left-0 z-50 flex w-full justify-center px-4 pt-4`}
+    >
+      <div
+        className={`${
+          scrolled ? "bg-background" : "bg-dark-1 rounded-lg"
+        } max-auto flex w-full items-center justify-between px-12`}
+      >
         <div className="flex items-center gap-12 py-4">
-          <div className="flex items-center gap-1">
+          <Link href={"/"} className="flex items-center gap-1">
             <Image src="/panda.svg" alt="icon" width={32} height={32} />
             <h1 className="text-2xl font-bold">Typing Panda</h1>
-          </div>
+          </Link>
           <div>
             <ul className="flex items-center gap-4 text-xl">
               <li
@@ -111,6 +129,28 @@ const Header: React.FC = () => {
                         <circle cx="12" cy="7" r="4" />
                       </svg>
                       <span>Profile</span>
+                    </Link>
+                    <Link
+                      href="/stats"
+                      className="flex items-center gap-3 rounded-t-md px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-emerald-500 hover:text-gray-900"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <line x1="4" y1="21" x2="4" y2="10" />
+                        <line x1="12" y1="21" x2="12" y2="4" />
+                        <line x1="20" y1="21" x2="20" y2="14" />
+                      </svg>
+
+                      <span>Stats</span>
                     </Link>
                     <Link
                       href="/settings"

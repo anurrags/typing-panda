@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
+
 import { TestDuration, TypingTest } from "@/components";
 import { Report } from "@/components/Report";
 import { TestStats } from "@/modules/types";
 import { useTestDataStore } from "@/store";
-import { useState } from "react";
 
 export default function Home() {
   const [testResult, setTestResult] = useState<TestStats | null>(null);
@@ -20,7 +21,7 @@ export default function Home() {
   };
 
   return (
-    <div className="mt-16 flex min-h-[90vh] flex-col justify-center">
+    <div className="flex min-h-[70vh] flex-col justify-center">
       {testResult ? (
         <Report testStat={testResult} onRestart={handleTestRestart} />
       ) : (

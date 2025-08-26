@@ -1,9 +1,10 @@
-import { Login } from "@/components";
 import React from "react";
+
+import { Login } from "@/components";
 
 const Page = () => {
   return (
-    <div className="mt-24 flex h-[95vh] flex-col items-center justify-center">
+    <div className="flex min-h-[85vh] flex-col items-center justify-center">
       <Login />
     </div>
   );

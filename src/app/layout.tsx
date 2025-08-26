@@ -1,6 +1,8 @@
+import "@/styles/globals.css";
+
 import { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "@/styles/globals.css";
+
 import { Banner, Footer, Header } from "@/components";
 
 const geistSans = Geist({
@@ -47,7 +49,7 @@ export default function RootLayout({
       >
         <Header />
         <Banner />
-        {children}
+        <div className="mt-20 min-h-[85vh]">{children}</div>
         <Footer />
       </body>
     </html>
