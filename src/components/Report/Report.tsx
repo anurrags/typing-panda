@@ -65,7 +65,7 @@ const Report = ({ testStat, onRestart }: ReportProps) => {
   }, [testStat]);
 
   return (
-    <div className="flex flex-col items-center gap-8 select-none">
+    <div className="mt-16 flex flex-col items-center gap-4 select-none">
       <div className="flex flex-col items-center justify-center gap-4">
         <div className="flex gap-8">
           <div className="flex flex-col gap-4 self-center">

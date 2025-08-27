@@ -12,6 +12,8 @@ export type TestStats = {
   incorrectChars: number;
   extraChars: number;
   statsPerSecond: StatsPerSecond[];
+  keyPresses: KeyPressData[];
+  delays: number[];
   created_at: string;
 };
 
@@ -21,6 +23,12 @@ export type StatsPerSecond = {
   rawWpm: number;
   errorRate: number;
   accuracy: number;
+};
+
+export type KeyPressData = {
+  key: string;
+  timestamp: number;
+  duration?: number;
 };
 
 export type OverAllStats = {
