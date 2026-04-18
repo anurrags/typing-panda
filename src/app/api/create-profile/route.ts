@@ -1,14 +1,27 @@
 import { NextResponse } from "next/server";
 
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
 
 export async function POST(req: Request) {
-  try {
-    const { user_id, username, firstName, lastName } = await req.json();
+  // Verify the caller is authenticated — never trust user_id from the body
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
 
+  if (authError || !user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  try {
+    const { username, firstName, lastName } = await req.json();
+
+    // user.id comes from the verified JWT, not the client
     const { error } = await supabaseAdmin.from("Profile").upsert(
       {
-        user_id,
+        user_id: user.id,
         username,
         firstName,
         lastName,
