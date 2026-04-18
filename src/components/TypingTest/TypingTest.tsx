@@ -10,6 +10,7 @@ import React, {
 
 import { TestStats } from "@/modules/types";
 import { getWordsArray } from "@/modules/util";
+import { TestAnalyzer } from "@/modules/util/TypingAnalyzer";
 import { useTestDataStore, useTestDurationStore } from "@/store";
 
 import { BlurOverlay, Carat, CharacterRenderer } from "../";
@@ -36,31 +37,13 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
     currentIndex: 0,
   });
   const [isFocused, setIsFocused] = useState(true);
-  const [testStats, setTestStats] = useState<TestStats>({
-    testId: "",
-    testType: testDuration.type,
-    testTypeValue: testDuration.value,
-    meanWpm: 0,
-    meanRawWpm: 0,
-    accuracy: 0,
-    testTime: 0,
-    charsTyped: 0,
-    correctChars: 0,
-    incorrectChars: 0,
-    extraChars: 0,
-    created_at: new Date().toISOString(),
-    statsPerSecond: [],
-  });
 
   const typingContainerRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const prevInputLengthRef = useRef({
-    wordIndex: 0,
-    charIndex: -1,
-  });
 
-  const paragraph = testState.wordsArray.join(" ");
+  const testAnalayzer = useRef(new TestAnalyzer());
+  const paragraph = useRef(testState.wordsArray.join(" "));
 
   useEffect(() => {
     setTestState((prev) => ({
@@ -92,35 +75,11 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
     if (time === 0) {
       return { wpm: 0, accuracy: 0 };
     }
-
-    let correctChars = 0;
-    let charsTyped = 0;
-    for (let i = 0; i < testState.userInput.length; i++) {
-      for (let j = 0; j < testState.userInput[i].length; j++) {
-        if (
-          testState.userInput[i].charAt(j) === testState.wordsArray[i].charAt(j)
-        ) {
-          correctChars++;
-        }
-        charsTyped++;
-      }
-    }
-
-    const spacesTyped = testState.userInput.length;
-
-    const wordsTyped = (correctChars + spacesTyped) / 5;
-    const timeInMinutes = time / 60;
-
-    const wpm =
-      timeInMinutes === 0 ? 0 : Math.round(wordsTyped / timeInMinutes);
-    const accuracy =
-      charsTyped === 0
-        ? 0
-        : Math.round(
-            ((correctChars + spacesTyped) / (charsTyped + spacesTyped)) * 100,
-          );
-
-    return { wpm, accuracy };
+    return testAnalayzer.current.currentStats(
+      time,
+      testState.userInput,
+      testState.wordsArray,
+    );
   }, [time, testStarted]);
 
   // Timer management
@@ -164,131 +123,41 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
 
   // Update per second stats when time changes
   useEffect(() => {
-    if (!testStarted && !testEnded) {
-      return;
+    if (testStarted && !testEnded) {
+      testAnalayzer.current.calculateStatsForSecond(
+        time,
+        testState.userInput,
+        testState.wordsArray,
+      );
     }
-
-    const currentWordIndex = testState.userInput.length - 1;
-    const currentCharIndex = testState.userInput[currentWordIndex]
-      ? testState.userInput[currentWordIndex].length - 1
-      : -1;
-
-    const prevWordIndex = prevInputLengthRef.current.wordIndex;
-    const prevCharIndex = prevInputLengthRef.current.charIndex;
-
-    const newTypedWords = testState.userInput.slice(
-      prevWordIndex,
-      currentWordIndex + 1,
-    );
-    const newTypedWordsCorrectValues = testState.wordsArray.slice(
-      prevWordIndex,
-      currentWordIndex + 1,
-    );
-
-    let newCorrectChars = 0;
-    let newTypedCharsLength = 0;
-    for (let i = 0; i < newTypedWords.length; i++) {
-      let j = i === 0 ? prevCharIndex + 1 : 0;
-      // user may only have typed some characters from first word in this particular second
-      for (; j < newTypedWords[i].length; j++) {
-        if (
-          newTypedWords[i].charAt(j) === newTypedWordsCorrectValues[i].charAt(j)
-        ) {
-          newCorrectChars++;
-        }
-        newTypedCharsLength++;
-      }
-    }
-    const spacesTyped = newTypedWords.length > 0 ? newTypedWords.length - 1 : 0;
-    const newWordsTyped = (newCorrectChars + spacesTyped) / 5;
-    const newRawWordsTyped = (newTypedCharsLength + spacesTyped) / 5;
-
-    const wpmLastSecond = Math.round(newWordsTyped * 60);
-    const rawWpmLastSecond = Math.round(newRawWordsTyped * 60);
-
-    const accuracyLastSecond =
-      newTypedCharsLength === 0
-        ? 0
-        : Math.round((newCorrectChars / newTypedCharsLength) * 100);
-
-    const errorRateLastSecond =
-      newTypedCharsLength === 0 ? 0 : newTypedCharsLength - newCorrectChars;
-
-    const newStatsPerSecond = {
-      wpm: wpmLastSecond,
-      rawWpm: rawWpmLastSecond,
-      errorRate: errorRateLastSecond,
-      accuracy: accuracyLastSecond,
-      second: time,
-    };
-
-    setTestStats((prev) => ({
-      ...prev,
-      statsPerSecond: [...prev.statsPerSecond, newStatsPerSecond],
-    }));
-
-    // Update the ref for next interval
-    prevInputLengthRef.current = {
-      wordIndex: currentWordIndex,
-      charIndex: currentCharIndex,
-    };
   }, [time]);
 
   // Final stats calculation on test end
   useEffect(() => {
     if (testEnded) {
-      const userInput = testState.userInput;
-      let charsTyped = 0;
-      let correctChars = 0;
-      let incorrectChars = 0;
-      let extraChars = 0;
-      for (let i = 0; i < userInput.length; i++) {
-        for (let j = 0; j < userInput[i].length; j++) {
-          if (j >= testState.wordsArray[i].length) {
-            extraChars++;
-          } else if (
-            userInput[i].charAt(j) === testState.wordsArray[i].charAt(j)
-          ) {
-            correctChars++;
-          } else {
-            incorrectChars++;
-          }
-          charsTyped++;
-        }
-      }
+      const finalStats = testAnalayzer.current.calculateFinalStats(
+        {
+          testId: "",
+          testType: testDuration.type,
+          testTypeValue: testDuration.value,
+          meanWpm: 0,
+          meanRawWpm: 0,
+          accuracy: 0,
+          testTime: time,
+          charsTyped: 0,
+          correctChars: 0,
+          incorrectChars: 0,
+          extraChars: 0,
+          created_at: new Date().toISOString(),
+          statsPerSecond: [],
+          keyPresses: [],
+          delays: [],
+        },
+        testState.userInput,
+        testState.wordsArray,
+        time,
+      );
 
-      const spacesTyped = userInput.length - 1;
-      const wordsTyped = (correctChars + spacesTyped) / 5;
-      const rawWordsTyped = (charsTyped + spacesTyped) / 5;
-      const timeInMinutes = time / 60;
-
-      const wpm =
-        timeInMinutes === 0 ? 0 : Math.round(wordsTyped / timeInMinutes);
-      const rawWpm =
-        timeInMinutes === 0 ? 0 : Math.round(rawWordsTyped / timeInMinutes);
-      const accuracy =
-        charsTyped === 0
-          ? 0
-          : Math.round(
-              ((correctChars + spacesTyped) / (charsTyped + spacesTyped)) * 100,
-            );
-
-      const finalStats = {
-        ...testStats,
-        testType: testDuration.type,
-        testTypeValue: testDuration.value,
-        meanWpm: wpm,
-        meanRawWpm: rawWpm,
-        accuracy: accuracy,
-        testTime: time,
-        charsTyped: charsTyped,
-        correctChars: correctChars,
-        incorrectChars: incorrectChars,
-        extraChars: extraChars,
-        testDate: new Date(),
-      };
-
-      setTestStats(finalStats);
       setTestStarted(false);
       onTestComplete(finalStats);
     }
@@ -313,7 +182,8 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
     scrollToCaretIfNeeded();
   }, [testState.currentIndex, scrollToCaretIfNeeded]);
 
-  const handleKeyPress = useCallback(
+  // KeyDown input handling
+  const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey || testEnded || e.key === "Tab")
         return;
@@ -323,12 +193,9 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
       if (e.key.length === 1) {
         if (!testStarted) {
           setTestStarted(true);
-          setTestStats((prev) => ({
-            ...prev,
-            testId: crypto.randomUUID(),
-            testDate: new Date(),
-          }));
+          testAnalayzer.current.reset();
         }
+        testAnalayzer.current.recordKeyDown(e.key, performance.now());
         if (e.key === " ") {
           setTestState((prev) => ({
             ...prev,
@@ -378,6 +245,15 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
     [testEnded, setTestStarted, testStarted],
   );
 
+  // KeyUp handling for key press durations
+  const handleKeyUp = useCallback(
+    (e: KeyboardEvent) => {
+      if (!testStarted || testEnded) return;
+      testAnalayzer.current.recordKeyUp(e.key, performance.now());
+    },
+    [testStarted, testEnded],
+  );
+
   const handleTestDivClick = useCallback(() => {
     const typingContainer = typingContainerRef.current;
     if (typingContainer) {
@@ -396,18 +272,20 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
     };
     if (typingContainer) {
       typingContainer.focus();
-      typingContainer.addEventListener("keydown", handleKeyPress);
+      typingContainer.addEventListener("keydown", handleKeyDown);
+      typingContainer.addEventListener("keyup", handleKeyUp);
       typingContainer.addEventListener("focus", handleFocus);
       typingContainer.addEventListener("blur", handleBlur);
     }
     return () => {
       if (typingContainer) {
-        typingContainer.removeEventListener("keydown", handleKeyPress);
+        typingContainer.removeEventListener("keydown", handleKeyDown);
+        typingContainer.removeEventListener("keyup", handleKeyUp);
         typingContainer.removeEventListener("focus", handleFocus);
         typingContainer.removeEventListener("blur", handleBlur);
       }
     };
-  }, [handleKeyPress, testEnded]);
+  }, [handleKeyDown, testEnded]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -431,7 +309,7 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
     return () => {
       window.removeEventListener("keydown", handleGlobalKeyDown);
     };
-  }, [handleKeyPress]);
+  }, [handleKeyDown]);
 
   const restartTest = useCallback(() => {
     if (intervalRef.current) {
@@ -450,26 +328,8 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
       currentIndex: 0,
     });
 
-    setTestStats({
-      testId: "",
-      testType: testDuration.type,
-      testTypeValue: testDuration.value,
-      meanWpm: 0,
-      meanRawWpm: 0,
-      accuracy: 0,
-      testTime: 0,
-      charsTyped: 0,
-      correctChars: 0,
-      incorrectChars: 0,
-      extraChars: 0,
-      created_at: new Date().toISOString(),
-      statsPerSecond: [],
-    });
     typingContainerRef.current?.focus();
-    prevInputLengthRef.current = {
-      wordIndex: 0,
-      charIndex: -1,
-    };
+    testAnalayzer.current.reset();
     onTestComplete(null);
   }, [setTestStarted, setTestEnded, testDuration]);
 
@@ -516,7 +376,7 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
 
           {/* Edge case: caret at very end */}
           {testState.wordsArray.length > 0 &&
-            paragraph.length === testState.currentIndex &&
+            paragraph.current.length === testState.currentIndex &&
             !testEnded &&
             isFocused && <Carat />}
         </div>
