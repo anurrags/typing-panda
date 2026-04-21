@@ -1,17 +1,13 @@
 import { NextResponse } from "next/server";
 
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { supabase } from "@/lib/supabaseClient";
 
 export async function GET() {
-  const supabase = await createSupabaseServerClient();
-
-  // getUser() validates the JWT against Supabase's server — cannot be spoofed
   const {
     data: { user },
-    error: authError,
   } = await supabase.auth.getUser();
 
-  if (authError || !user) {
+  if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
