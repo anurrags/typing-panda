@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 
+import { countries } from "@/constants/countries";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/modules/hooks";
 import { useBannerStore } from "@/store/bannerStore";
@@ -26,6 +27,10 @@ const ProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const countryDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [countrySearch, setCountrySearch] = useState("");
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
 
   const [profile, setProfile] = useState<ProfileData>({
     firstName: "",
@@ -86,6 +91,14 @@ const ProfilePage = () => {
 
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+
+    if (name === "phone") {
+      // Only allow digits and limit to 10
+      const digitsOnly = value.replace(/\D/g, "").slice(0, 10);
+      setEditForm((prev) => ({ ...prev, [name]: digitsOnly }));
+      return;
+    }
+
     setEditForm((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -114,6 +127,12 @@ const ProfilePage = () => {
       if (Object.keys(changedFields).length === 0) {
         setEditing(false);
         showBanner("No changes to save.", "success", 3000);
+        return;
+      }
+
+      if (changedFields.phone && changedFields.phone.length !== 10) {
+        showBanner("Phone number must be exactly 10 digits", "error", 5000);
+        setSaving(false);
         return;
       }
 
@@ -185,6 +204,30 @@ const ProfilePage = () => {
     } finally {
       setUploading(false);
     }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        countryDropdownRef.current &&
+        !countryDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowCountryDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredCountries = countries.filter((c) =>
+    c.toLowerCase().includes(countrySearch.toLowerCase()),
+  );
+
+  const handleCountrySelect = (country: string) => {
+    setEditForm((prev) => ({ ...prev, country }));
+    setCountrySearch(country);
+    setShowCountryDropdown(false);
   };
 
   if (!auth) {
@@ -372,18 +415,50 @@ const ProfilePage = () => {
                 )}
               </div>
 
-              <div className="flex flex-col gap-2">
+              <div className="relative flex flex-col gap-2">
                 <label className="text-grey-3 text-sm font-medium">
                   Country
                 </label>
                 {editing ? (
-                  <input
-                    type="text"
-                    name="country"
-                    value={editForm.country}
-                    onChange={handleEditChange}
-                    className="border-grey-2 bg-grey-4 focus:border-cyan-2 w-full rounded-md border p-3 text-white transition-colors outline-none"
-                  />
+                  <div className="relative" ref={countryDropdownRef}>
+                    <input
+                      type="text"
+                      name="country"
+                      value={
+                        showCountryDropdown ? countrySearch : editForm.country
+                      }
+                      onChange={(e) => {
+                        setCountrySearch(e.target.value);
+                        setShowCountryDropdown(true);
+                      }}
+                      onFocus={() => {
+                        setCountrySearch(editForm.country || "");
+                        setShowCountryDropdown(true);
+                      }}
+                      placeholder="Search country..."
+                      autoComplete="off"
+                      className="border-grey-2 bg-grey-4 focus:border-cyan-2 w-full rounded-md border p-3 text-white transition-colors outline-none"
+                    />
+                    {showCountryDropdown && (
+                      <div className="bg-grey-4 border-grey-2 absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-md border shadow-xl">
+                        {filteredCountries.length > 0 ? (
+                          filteredCountries.map((c) => (
+                            <div
+                              key={c}
+                              className="hover:bg-grey-2 cursor-pointer p-3 text-white transition-colors"
+                              onClick={() => handleCountrySelect(c)}
+                            >
+                              {c}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-grey-3 p-3 text-sm italic">
+                            No countries found
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <p className="bg-grey-4/30 rounded-md border border-transparent p-3 text-lg font-medium text-white">
                     {profile.country || (
