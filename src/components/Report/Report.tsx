@@ -2,7 +2,7 @@
 
 import { ArrowPathIcon } from "@heroicons/react/20/solid";
 import Link from "next/link";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/modules/hooks";
@@ -19,70 +19,113 @@ type ReportProps = {
 const Report = ({ testStat, antiCheatPayload, onRestart }: ReportProps) => {
   const hasInserted = useRef(false);
   const auth = useAuth();
+  const [submitStatus, setSubmitStatus] = useState<
+    "idle" | "submitting" | "success" | "rejected" | "error"
+  >("idle");
+  const [rejectReason, setRejectReason] = useState<string | null>(null);
 
-  // Determine if the test was flagged by anti-cheat
+  // Determine if the test was flagged by frontend anti-cheat
   const isInvalidated = antiCheatPayload?.flags?.isInvalidated ?? false;
   const invalidationReason =
     antiCheatPayload?.flags?.invalidationReason ?? null;
 
   useEffect(() => {
-    const insertTestData = async () => {
+    const submitTestData = async () => {
       const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
-      if (userError || !user) {
+      if (sessionError || !session?.user) {
         return;
       }
       if (testStat.meanWpm === 0) {
         return;
       }
 
-      // ─── Anti-Cheat: Don't save invalidated tests ────────────────
+      // ─── Frontend-invalidated tests are never submitted ────────────
       if (isInvalidated) {
         console.warn(
-          "[AntiCheat] Test invalidated — result not saved:",
+          "[AntiCheat] Test invalidated on frontend — not submitting:",
           invalidationReason,
         );
+        setSubmitStatus("rejected");
+        setRejectReason(invalidationReason);
         return;
       }
 
-      const { error } = await supabase.from("testData").insert([
-        {
-          user_id: user.id,
-          testId: testStat.testId,
-          testType: testStat.testType,
-          testTypeValue: testStat.testTypeValue,
-          meanWpm: testStat.meanWpm,
-          meanRawWpm: testStat.meanRawWpm,
-          accuracy: testStat.accuracy,
-          testTime: testStat.testTime,
-          charsTyped: testStat.charsTyped,
-          correctChars: testStat.correctChars,
-          incorrectChars: testStat.incorrectChars,
-          extraChars: testStat.extraChars,
-          statsPerSecond: testStat.statsPerSecond,
-        },
-      ]);
+      setSubmitStatus("submitting");
 
-      if (error) {
-        console.error("Insert error:", error);
-      } else {
-        console.log("Insert success");
+      try {
+        const response = await fetch("/api/submit-test", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            testStats: {
+              testId: testStat.testId,
+              testType: testStat.testType,
+              testTypeValue: testStat.testTypeValue,
+              meanWpm: testStat.meanWpm,
+              meanRawWpm: testStat.meanRawWpm,
+              accuracy: testStat.accuracy,
+              testTime: testStat.testTime,
+              charsTyped: testStat.charsTyped,
+              correctChars: testStat.correctChars,
+              incorrectChars: testStat.incorrectChars,
+              extraChars: testStat.extraChars,
+              statsPerSecond: testStat.statsPerSecond,
+            },
+            antiCheat: antiCheatPayload
+              ? {
+                  token: antiCheatPayload.token,
+                  keystrokeHash: antiCheatPayload.keystrokeHash,
+                  generatedAt: antiCheatPayload.generatedAt,
+                  flags: antiCheatPayload.flags,
+                  timingAnalysis: antiCheatPayload.timingAnalysis,
+                  keystrokeLog: antiCheatPayload.keystrokeLog,
+                }
+              : null,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          setSubmitStatus("success");
+          console.log(
+            "[AntiCheat] Test saved successfully:",
+            result.validation,
+          );
+        } else if (response.status === 403) {
+          setSubmitStatus("rejected");
+          setRejectReason(result.error || "Test rejected by anti-cheat.");
+          console.warn(
+            "[AntiCheat] Test rejected by server:",
+            result.validation,
+          );
+        } else {
+          setSubmitStatus("error");
+          console.error("Submit error:", result.error);
+        }
+      } catch (err) {
+        setSubmitStatus("error");
+        console.error("Network error submitting test:", err);
       }
     };
 
     if (!hasInserted.current) {
       hasInserted.current = true;
-      insertTestData();
+      submitTestData();
     }
   }, [testStat, antiCheatPayload, isInvalidated, invalidationReason]);
 
   return (
     <div className="flex flex-col items-center gap-8 select-none">
-      {/* Anti-cheat invalidation warning */}
-      {isInvalidated && (
+      {/* Anti-cheat invalidation warning (frontend or backend) */}
+      {(isInvalidated || submitStatus === "rejected") && (
         <div className="flex max-w-lg items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-5 py-3 text-red-400">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -99,7 +142,8 @@ const Report = ({ testStat, antiCheatPayload, onRestart }: ReportProps) => {
           <div className="flex flex-col">
             <span className="text-sm font-semibold">Test Invalidated</span>
             <span className="text-xs text-red-400/80">
-              {invalidationReason} This result will not be saved.
+              {invalidationReason || rejectReason} This result will not be
+              saved.
             </span>
           </div>
         </div>

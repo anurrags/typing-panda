@@ -55,6 +55,8 @@ export interface AntiCheatPayload {
   flags: AntiCheatFlags;
   /** Keystroke timing analysis summary (individual keystrokes are NOT sent) */
   timingAnalysis: KeystrokeTimingAnalysis;
+  /** Full keystroke event log for backend replay verification */
+  keystrokeLog: KeystrokeEvent[];
 }
 
 export interface AntiCheatState {

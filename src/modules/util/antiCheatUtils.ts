@@ -214,9 +214,9 @@ export async function createAntiCheatPayload(
     timingAnalysis.isSuspicious,
   ].join("|");
 
-  // Use a client-side secret key (in production this would be
-  // an environment variable or fetched from the server at test start)
-  const secretKey = `tp_ac_${testStats.testId}_${generatedAt}`;
+  // Use shared secret for HMAC — same key is used server-side for verification
+  const secretKey =
+    process.env.NEXT_PUBLIC_ANTICHEAT_SECRET || "tp_default_secret";
   const token = await hmacSha256(secretKey, signingPayload);
 
   return {
@@ -229,6 +229,7 @@ export async function createAntiCheatPayload(
       // Don't send the raw intervals array to keep payload small
       intervals: [],
     },
+    keystrokeLog: keystrokes,
   };
 }
 
