@@ -8,7 +8,8 @@ import React, {
   useState,
 } from "react";
 
-import { TestStats } from "@/modules/types";
+import { useAntiCheat } from "@/modules/hooks";
+import { AntiCheatPayload, TestStats } from "@/modules/types";
 import { getWordsArray } from "@/modules/util";
 import { useTestDataStore, useTestDurationStore } from "@/store";
 
@@ -21,7 +22,10 @@ interface TestState {
 }
 
 type TypingTestProps = {
-  onTestComplete: (stats: TestStats | null) => void;
+  onTestComplete: (
+    stats: TestStats | null,
+    antiCheatPayload?: AntiCheatPayload,
+  ) => void;
 };
 
 const TypingTest = ({ onTestComplete }: TypingTestProps) => {
@@ -59,6 +63,35 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
     wordIndex: 0,
     charIndex: -1,
   });
+  const statsPerSecondRef = useRef<
+    Array<{
+      wpm: number;
+      rawWpm: number;
+      errorRate: number;
+      accuracy: number;
+      second: number;
+    }>
+  >([]);
+
+  // ─── Anti-Cheat Integration ─────────────────────────────────────────────
+  const handleInvalidation = useCallback(
+    (reason: string) => {
+      console.warn("[AntiCheat]", reason);
+      setTestEnded(true);
+    },
+    [setTestEnded],
+  );
+
+  const antiCheat = useAntiCheat(typingContainerRef, {
+    isActive: testStarted && !testEnded,
+    onInvalidation: handleInvalidation,
+  });
+
+  // Store recordKeystroke in a ref so handleKeyPress doesn't depend on antiCheat object
+  const recordKeystrokeRef = useRef(antiCheat.recordKeystroke);
+  useEffect(() => {
+    recordKeystrokeRef.current = antiCheat.recordKeystroke;
+  }, [antiCheat.recordKeystroke]);
 
   const paragraph = testState.wordsArray.join(" ");
 
@@ -222,6 +255,9 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
       second: time,
     };
 
+    // Update the ref synchronously so it's instantly available on test end
+    statsPerSecondRef.current.push(newStatsPerSecond);
+
     setTestStats((prev) => ({
       ...prev,
       statsPerSecond: [...prev.statsPerSecond, newStatsPerSecond],
@@ -286,11 +322,23 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
         incorrectChars: incorrectChars,
         extraChars: extraChars,
         testDate: new Date(),
+        // Use the synchronous ref to guarantee the final second is included
+        statsPerSecond: [...statsPerSecondRef.current],
       };
 
       setTestStats(finalStats);
       setTestStarted(false);
-      onTestComplete(finalStats);
+
+      // Generate anti-cheat payload before reporting results
+      antiCheat
+        .generatePayload(finalStats)
+        .then((payload) => {
+          onTestComplete(finalStats, payload);
+        })
+        .catch((err) => {
+          console.error("[AntiCheat] Failed to generate payload:", err);
+          onTestComplete(finalStats);
+        });
     }
   }, [testEnded]);
 
@@ -317,6 +365,14 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
     (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey || testEnded || e.key === "Tab")
         return;
+
+      // ─── Anti-Cheat: Record keystroke & check isTrusted ─────────────
+      const isTrusted = recordKeystrokeRef.current(e);
+      if (!isTrusted) {
+        // Drop synthetic/untrusted events entirely
+        e.preventDefault();
+        return;
+      }
 
       e.preventDefault();
 
@@ -357,17 +413,6 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
             ...prev.userInput.slice(0, -1),
             prev.userInput[prev.currentIndex].slice(0, -1),
           ];
-          // if (
-          //   newInput[prev.currentIndex].length === 0 &&
-          //   prev.currentIndex > 0
-          // ) {
-          //   newInput.pop();
-          //   return {
-          //     ...prev,
-          //     userInput: newInput,
-          //     currentIndex: prev.currentIndex - 1,
-          //   };
-          // }
           return {
             ...prev,
             userInput: newInput,
@@ -470,8 +515,13 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
       wordIndex: 0,
       charIndex: -1,
     };
+    statsPerSecondRef.current = [];
+
+    // Reset anti-cheat state for the new test
+    antiCheat.reset();
+
     onTestComplete(null);
-  }, [setTestStarted, setTestEnded, testDuration]);
+  }, [setTestStarted, setTestEnded, testDuration, antiCheat]);
 
   return (
     <div className={`flex flex-col items-center justify-center gap-8`}>
@@ -492,6 +542,26 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
           <span className="text-grey-2">s</span>
         </div>
       </div>
+
+      {/* Anti-cheat invalidation banner */}
+      {antiCheat.isInvalidated && (
+        <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-400">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4 shrink-0"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+              clipRule="evenodd"
+            />
+          </svg>
+          <span>{antiCheat.invalidationReason}</span>
+        </div>
+      )}
+
       <div className="relative h-36 w-full">
         <div
           ref={typingContainerRef}
