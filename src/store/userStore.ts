@@ -4,7 +4,13 @@ interface UserState {
   firstName: string | null;
   lastName: string | null;
   username: string | null;
-  setUser: (firstName: string, lastName: string, username: string) => void;
+  nickname: string | null;
+  setUser: (
+    firstName: string | null,
+    lastName: string | null,
+    username: string | null,
+    nickname: string | null,
+  ) => void;
   clearUser: () => void;
 }
 
@@ -12,10 +18,14 @@ export const useUserStore = create<UserState>((set) => ({
   firstName: null,
   lastName: null,
   username: null,
+  nickname: null,
 
-  setUser: (firstName, lastName, username) =>
-    set({ firstName, lastName, username }, false),
+  setUser: (firstName, lastName, username, nickname) =>
+    set({ firstName, lastName, username, nickname }, false),
 
   clearUser: () =>
-    set({ firstName: null, lastName: null, username: null }, false),
+    set(
+      { firstName: null, lastName: null, username: null, nickname: null },
+      false,
+    ),
 }));

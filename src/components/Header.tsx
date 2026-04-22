@@ -14,6 +14,7 @@ const Header: React.FC = () => {
   const { showBanner } = useBannerStore();
   const setUser = useUserStore((state) => state.setUser);
   const firstName = useUserStore((state) => state.firstName);
+  const nickname = useUserStore((state) => state.nickname);
   const { tab, setTab } = useTabStore((state) => state);
   const [showProfileOptions, setShowProfileOptions] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -43,11 +44,16 @@ const Header: React.FC = () => {
       if (auth) {
         const { data: profile } = await supabase
           .from("Profile")
-          .select("firstName, username, lastName")
+          .select("firstName, username, lastName, nickname")
           .eq("user_id", auth.id)
           .single();
         if (profile)
-          setUser(profile.firstName, profile.lastName, profile.username);
+          setUser(
+            profile.firstName,
+            profile.lastName,
+            profile.username,
+            profile.nickname,
+          );
       }
     };
     fetchUserProfile();
@@ -97,8 +103,10 @@ const Header: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          {auth && firstName && (
-            <span className="mr-4 text-white">Hello, {firstName}!</span>
+          {auth && (nickname || firstName) && (
+            <span className="mr-4 text-white">
+              Hello, {nickname || firstName}!
+            </span>
           )}
           <div
             className="relative cursor-pointer py-4"
