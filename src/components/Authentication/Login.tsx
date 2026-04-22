@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/modules/hooks";
 import { useBannerStore } from "@/store/bannerStore";
 
-type AuthMode = "login" | "signup";
+type AuthMode = "login" | "signup" | "forgot_password";
 
 const baseSchema = {
   email: z.email("Invalid email address").nonempty("Email is required"),
@@ -36,6 +36,10 @@ const signupSchema = z
     path: ["confirmPassword"],
   });
 
+const forgotPasswordSchema = z.object({
+  email: baseSchema.email,
+});
+
 export default function Login() {
   const [mode, setMode] = useState<AuthMode>("login");
   const [loading, setLoading] = useState(false);
@@ -47,11 +51,18 @@ export default function Login() {
     router.push("/");
   }
 
-  const schema = mode === "login" ? loginSchema : signupSchema;
+  const schema =
+    mode === "login"
+      ? loginSchema
+      : mode === "signup"
+        ? signupSchema
+        : forgotPasswordSchema;
   type LoginFormInputs = z.infer<typeof loginSchema>;
   type SignupFormInputs = z.infer<typeof signupSchema>;
+  type ForgotPasswordFormInputs = z.infer<typeof forgotPasswordSchema>;
   type AuthFormInputs = LoginFormInputs &
-    Partial<Omit<SignupFormInputs, keyof LoginFormInputs>>;
+    Partial<Omit<SignupFormInputs, keyof LoginFormInputs>> &
+    Partial<ForgotPasswordFormInputs>;
 
   const {
     register,
@@ -59,7 +70,8 @@ export default function Login() {
     formState: { errors, isSubmitting },
     reset,
   } = useForm<AuthFormInputs>({
-    resolver: zodResolver(schema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(schema as any),
   });
 
   const onSubmit = async (data: AuthFormInputs) => {
@@ -77,7 +89,7 @@ export default function Login() {
         showBanner("You are Logged In successfully.", "success", 5000);
 
         // router.push("/");
-      } else {
+      } else if (mode === "signup") {
         const { data: signUpData, error } = await supabase.auth.signUp({
           email: data.email!,
           password: data.password!,
@@ -88,7 +100,7 @@ export default function Login() {
           return;
         }
         if (signUpData?.user) {
-          await fetch("/api/create-profile", {
+          const res = await fetch("/api/create-profile", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -98,12 +110,37 @@ export default function Login() {
               lastName: data.lastName!,
             }),
           });
+
+          if (!res.ok) {
+            const errorData = await res.json();
+            showBanner(
+              errorData.error ||
+                "Failed to create profile. Please try signing up again.",
+              "error",
+              15000,
+            );
+            return;
+          }
         }
         showBanner(
           "You are signed Up successfully. Please check your inbox for verification email.",
           "success",
           15000,
         );
+        setMode("login");
+        reset();
+      } else if (mode === "forgot_password") {
+        const { error } = await supabase.auth.resetPasswordForEmail(
+          data.email!,
+          {
+            redirectTo: `${window.location.origin}/reset-password`,
+          },
+        );
+        if (error) {
+          showBanner(error.message, "error", 15000);
+          return;
+        }
+        showBanner("Password reset link sent to your email.", "success", 15000);
         setMode("login");
         reset();
       }
@@ -211,26 +248,39 @@ export default function Login() {
                 </p>
               )}
             </div>
-            <div className="flex flex-col gap-2">
-              <label
-                htmlFor="password"
-                className="text-grey-3 text-sm font-medium"
-              >
-                Password
-              </label>
-              <input
-                type="password"
-                placeholder="Enter your password"
-                id="password"
-                {...register("password")}
-                className={`bg-grey-4 w-full rounded-md border p-2.5 ${errors.password ? "border-red-500" : "border-grey-3"} focus:border-cyan-1 transition focus:outline-none`}
-              />
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
+            {mode !== "forgot_password" && (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="password"
+                    className="text-grey-3 text-sm font-medium"
+                  >
+                    Password
+                  </label>
+                  {mode === "login" && (
+                    <button
+                      type="button"
+                      onClick={() => setMode("forgot_password")}
+                      className="text-cyan-1 text-sm font-medium hover:underline focus:outline-none"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="password"
+                  placeholder="Enter your password"
+                  id="password"
+                  {...register("password")}
+                  className={`bg-grey-4 w-full rounded-md border p-2.5 ${errors.password ? "border-red-500" : "border-grey-3"} focus:border-cyan-1 transition focus:outline-none`}
+                />
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
+            )}
             {mode === "signup" && (
               <div className="flex flex-col gap-2">
                 <label className="text-grey-3 text-sm font-medium">
@@ -259,6 +309,8 @@ export default function Login() {
               <BeatLoader size={10} color="#fff" />
             ) : mode === "login" ? (
               "Login"
+            ) : mode === "forgot_password" ? (
+              "Send Reset Link"
             ) : (
               "Sign Up"
             )}
@@ -268,7 +320,9 @@ export default function Login() {
           <p className="text-grey-3 text-sm">
             {mode === "login"
               ? "Don't have an account?"
-              : "Already have an account?"}
+              : mode === "forgot_password"
+                ? "Remembered your password?"
+                : "Already have an account?"}
           </p>
           <button
             type="button"
