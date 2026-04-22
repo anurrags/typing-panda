@@ -579,7 +579,7 @@ export async function POST(req: Request) {
 
     // ─── All Checks Passed — Save to Database ─────────────────────────
 
-    const { testStats } = body;
+    const { testStats, antiCheat } = body;
 
     const { error: insertError } = await supabaseAdmin.from("testData").insert([
       {
@@ -596,6 +596,10 @@ export async function POST(req: Request) {
         incorrectChars: testStats.incorrectChars,
         extraChars: testStats.extraChars,
         statsPerSecond: testStats.statsPerSecond,
+        antiCheatToken: antiCheat.token,
+        keystrokeHash: antiCheat.keystrokeHash,
+        antiCheatGeneratedAt: antiCheat.generatedAt,
+        timingAnalysis: antiCheat.timingAnalysis,
       },
     ]);
 

@@ -63,6 +63,15 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
     wordIndex: 0,
     charIndex: -1,
   });
+  const statsPerSecondRef = useRef<
+    Array<{
+      wpm: number;
+      rawWpm: number;
+      errorRate: number;
+      accuracy: number;
+      second: number;
+    }>
+  >([]);
 
   // ─── Anti-Cheat Integration ─────────────────────────────────────────────
   const handleInvalidation = useCallback(
@@ -246,6 +255,9 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
       second: time,
     };
 
+    // Update the ref synchronously so it's instantly available on test end
+    statsPerSecondRef.current.push(newStatsPerSecond);
+
     setTestStats((prev) => ({
       ...prev,
       statsPerSecond: [...prev.statsPerSecond, newStatsPerSecond],
@@ -310,6 +322,8 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
         incorrectChars: incorrectChars,
         extraChars: extraChars,
         testDate: new Date(),
+        // Use the synchronous ref to guarantee the final second is included
+        statsPerSecond: [...statsPerSecondRef.current],
       };
 
       setTestStats(finalStats);
@@ -501,6 +515,7 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
       wordIndex: 0,
       charIndex: -1,
     };
+    statsPerSecondRef.current = [];
 
     // Reset anti-cheat state for the new test
     antiCheat.reset();
