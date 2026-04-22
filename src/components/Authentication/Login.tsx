@@ -70,7 +70,8 @@ export default function Login() {
     formState: { errors, isSubmitting },
     reset,
   } = useForm<AuthFormInputs>({
-    resolver: zodResolver(schema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(schema as any),
   });
 
   const onSubmit = async (data: AuthFormInputs) => {
@@ -99,7 +100,7 @@ export default function Login() {
           return;
         }
         if (signUpData?.user) {
-          await fetch("/api/create-profile", {
+          const res = await fetch("/api/create-profile", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -109,6 +110,17 @@ export default function Login() {
               lastName: data.lastName!,
             }),
           });
+
+          if (!res.ok) {
+            const errorData = await res.json();
+            showBanner(
+              errorData.error ||
+                "Failed to create profile. Please try signing up again.",
+              "error",
+              15000,
+            );
+            return;
+          }
         }
         showBanner(
           "You are signed Up successfully. Please check your inbox for verification email.",
