@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/modules/hooks";
@@ -12,6 +12,9 @@ interface ProfileData {
   username: string;
   country?: string;
   avatar?: string;
+  phone?: string;
+  nickname?: string;
+  createdAt?: string;
 }
 
 const ProfilePage = () => {
@@ -21,6 +24,8 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [profile, setProfile] = useState<ProfileData>({
     firstName: "",
@@ -28,6 +33,9 @@ const ProfilePage = () => {
     username: "",
     country: "",
     avatar: "",
+    phone: "",
+    nickname: "",
+    createdAt: "",
   });
 
   const [editForm, setEditForm] = useState<ProfileData>({ ...profile });
@@ -38,7 +46,9 @@ const ProfilePage = () => {
       try {
         const { data, error } = await supabase
           .from("Profile")
-          .select("firstName, lastName, username, country, avatar")
+          .select(
+            "firstName, lastName, username, country, avatar, phone, nickname",
+          )
           .eq("user_id", auth.id)
           .single();
 
@@ -47,20 +57,18 @@ const ProfilePage = () => {
         }
 
         if (data) {
-          setProfile({
+          const profileData = {
             firstName: data.firstName || "",
             lastName: data.lastName || "",
             username: data.username || "",
             country: data.country || "",
             avatar: data.avatar || "",
-          });
-          setEditForm({
-            firstName: data.firstName || "",
-            lastName: data.lastName || "",
-            username: data.username || "",
-            country: data.country || "",
-            avatar: data.avatar || "",
-          });
+            phone: data.phone || "",
+            nickname: data.nickname || "",
+            createdAt: auth.created_at,
+          };
+          setProfile(profileData);
+          setEditForm(profileData);
         }
       } catch {
         showBanner("Failed to load profile data", "error", 5000);
@@ -85,6 +93,30 @@ const ProfilePage = () => {
     if (!auth) return;
     setSaving(true);
     try {
+      // Build an object of only the fields that changed, excluding avatar
+      const changedFields: Record<string, string | undefined> = {};
+      const fieldsToCheck: (keyof ProfileData)[] = [
+        "username",
+        "firstName",
+        "lastName",
+        "country",
+        "phone",
+        "nickname",
+        "avatar",
+      ];
+
+      for (const key of fieldsToCheck) {
+        if (editForm[key] !== profile[key]) {
+          changedFields[key] = editForm[key];
+        }
+      }
+
+      if (Object.keys(changedFields).length === 0) {
+        setEditing(false);
+        showBanner("No changes to save.", "success", 3000);
+        return;
+      }
+
       const response = await fetch("/api/update-profile", {
         method: "PUT",
         headers: {
@@ -92,7 +124,7 @@ const ProfilePage = () => {
         },
         body: JSON.stringify({
           user_id: auth.id,
-          ...editForm,
+          ...changedFields,
         }),
       });
 
@@ -111,6 +143,47 @@ const ProfilePage = () => {
       showBanner(errorMessage, "error", 5000);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAvatarClick = () => {
+    if (editing) {
+      fileInputRef.current?.click();
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !auth) return;
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `avatar.${fileExt}`;
+      const filePath = `${auth.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("user-data")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: signed } = await supabase.storage
+        .from("user-data")
+        .createSignedUrl(filePath, 60 * 60);
+
+      if (!signed?.signedUrl) {
+        throw new Error("Failed to create signed URL");
+      }
+
+      setEditForm((prev) => ({ ...prev, avatar: signed.signedUrl }));
+      showBanner("Avatar uploaded successfully!", "success", 3000);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to upload avatar";
+      showBanner(errorMessage, "error", 5000);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -166,7 +239,10 @@ const ProfilePage = () => {
       <div className="bg-dark-1 rounded-xl p-8 shadow-lg shadow-black/20">
         <div className="flex flex-col items-start gap-12 md:flex-row">
           <div className="flex flex-col items-center gap-6">
-            <div className="border-grey-4 bg-grey-2 relative flex h-40 w-40 items-center justify-center overflow-hidden rounded-full border-4">
+            <div
+              className={`border-grey-4 bg-grey-2 relative flex h-40 w-40 items-center justify-center overflow-hidden rounded-full border-4 ${editing ? "group cursor-pointer" : ""}`}
+              onClick={handleAvatarClick}
+            >
               <img
                 src={
                   (editing ? editForm.avatar : profile.avatar) ||
@@ -175,45 +251,82 @@ const ProfilePage = () => {
                   }&background=2d2f35&color=6ee7b7`
                 }
                 alt="Profile Avatar"
-                className="h-full w-full object-cover"
+                className={`h-full w-full object-cover ${editing ? "transition-all duration-300 group-hover:blur-sm group-hover:brightness-50" : ""}`}
               />
+              {editing && (
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                  <span className="text-sm font-medium text-white">
+                    {uploading ? "Uploading..." : "Change Image"}
+                  </span>
+                </div>
+              )}
             </div>
-            {editing && (
-              <div className="w-full">
-                <label className="text-grey-1 mb-1 block text-sm font-medium">
-                  Avatar URL
-                </label>
-                <input
-                  type="text"
-                  name="avatar"
-                  value={editForm.avatar}
-                  onChange={handleEditChange}
-                  placeholder="https://example.com/avatar.png"
-                  className="border-grey-2 bg-grey-4 focus:border-cyan-2 w-full rounded-md border p-2 text-white outline-none"
-                />
+            {!editing && profile.createdAt && (
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-cyan-2/60 text-xs font-bold tracking-widest uppercase">
+                  Typing Since
+                </span>
+                <span className="text-grey-1 text-sm font-medium">
+                  {new Date(profile.createdAt).toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </span>
               </div>
+            )}
+            {editing && (
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleFileChange}
+              />
             )}
           </div>
           <div className="flex w-full flex-1 flex-col gap-8">
-            <div className="flex flex-col gap-2">
-              <label className="text-grey-3 text-sm font-medium">
-                Username
-              </label>
-              {editing ? (
-                <input
-                  type="text"
-                  name="username"
-                  value={editForm.username}
-                  onChange={handleEditChange}
-                  className="border-grey-2 bg-grey-4 focus:border-cyan-2 w-full rounded-md border p-3 text-white transition-colors outline-none"
-                />
-              ) : (
-                <p className="bg-grey-4/30 rounded-md border border-transparent p-3 text-lg font-medium text-white">
-                  {profile.username || (
-                    <span className="text-grey-2 italic">Not set</span>
-                  )}
-                </p>
-              )}
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <label className="text-grey-3 text-sm font-medium">
+                  Username
+                </label>
+                {editing ? (
+                  <input
+                    type="text"
+                    name="username"
+                    value={editForm.username}
+                    onChange={handleEditChange}
+                    className="border-grey-2 bg-grey-4 focus:border-cyan-2 w-full rounded-md border p-3 text-white transition-colors outline-none"
+                  />
+                ) : (
+                  <p className="bg-grey-4/30 rounded-md border border-transparent p-3 text-lg font-medium text-white">
+                    {profile.username || (
+                      <span className="text-grey-2 italic">Not set</span>
+                    )}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-grey-3 text-sm font-medium">
+                  Nickname
+                </label>
+                {editing ? (
+                  <input
+                    type="text"
+                    name="nickname"
+                    value={editForm.nickname}
+                    onChange={handleEditChange}
+                    className="border-grey-2 bg-grey-4 focus:border-cyan-2 w-full rounded-md border p-3 text-white transition-colors outline-none"
+                  />
+                ) : (
+                  <p className="bg-grey-4/30 rounded-md border border-transparent p-3 text-lg font-medium text-white">
+                    {profile.nickname || (
+                      <span className="text-grey-2 italic">Not set</span>
+                    )}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
@@ -259,7 +372,7 @@ const ProfilePage = () => {
                 )}
               </div>
 
-              <div className="flex flex-col gap-2 md:col-span-2">
+              <div className="flex flex-col gap-2">
                 <label className="text-grey-3 text-sm font-medium">
                   Country
                 </label>
@@ -274,6 +387,27 @@ const ProfilePage = () => {
                 ) : (
                   <p className="bg-grey-4/30 rounded-md border border-transparent p-3 text-lg font-medium text-white">
                     {profile.country || (
+                      <span className="text-grey-2 italic">Not set</span>
+                    )}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-grey-3 text-sm font-medium">
+                  Phone Number
+                </label>
+                {editing ? (
+                  <input
+                    type="text"
+                    name="phone"
+                    value={editForm.phone}
+                    onChange={handleEditChange}
+                    className="border-grey-2 bg-grey-4 focus:border-cyan-2 w-full rounded-md border p-3 text-white transition-colors outline-none"
+                  />
+                ) : (
+                  <p className="bg-grey-4/30 rounded-md border border-transparent p-3 text-lg font-medium text-white">
+                    {profile.phone || (
                       <span className="text-grey-2 italic">Not set</span>
                     )}
                   </p>

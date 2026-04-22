@@ -5,7 +5,16 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 export async function PUT(req: Request) {
   try {
     const body = await req.json();
-    const { user_id, username, firstName, lastName, country, avatar } = body;
+    const {
+      user_id,
+      username,
+      firstName,
+      lastName,
+      country,
+      avatar,
+      phone,
+      nickname,
+    } = body;
 
     if (!user_id) {
       return NextResponse.json({ error: "Missing user_id" }, { status: 400 });
@@ -19,6 +28,8 @@ export async function PUT(req: Request) {
         lastName,
         country,
         avatar,
+        phone,
+        nickname,
       })
       .eq("user_id", user_id);
 
