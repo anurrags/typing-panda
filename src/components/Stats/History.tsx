@@ -106,6 +106,36 @@ const History = ({ data, overAllStats }: Props) => {
           </div>
         ))}
       </div>
+      {overAllStats.overallCharacterStats &&
+        Object.keys(overAllStats.overallCharacterStats).length > 0 && (
+          <section className="w-full">
+            <div className="no-scrollbar flex snap-x gap-4 overflow-x-auto">
+              {Object.entries(overAllStats.overallCharacterStats)
+                .sort(
+                  (a, b) =>
+                    b[1].incorrect - a[1].incorrect ||
+                    b[1].correct - a[1].correct,
+                )
+                .map(([char, stats]) => {
+                  return (
+                    <div
+                      key={char}
+                      className="bg-dark-1 flex w-24 flex-none flex-col items-center justify-center gap-2 rounded-xl border border-white/5 p-4 transition-all duration-300 hover:border-white/20"
+                    >
+                      <span className="font-mono text-3xl font-semibold text-white">
+                        {char === " " ? "␣" : char}
+                      </span>
+                      <div className="font-mono text-sm font-medium">
+                        <span className="text-red-400">{stats.incorrect}</span>
+                        <span className="text-grey-5 mx-1">/</span>
+                        <span className="text-green-400">{stats.correct}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </section>
+        )}
       <Table<TestStats>
         headers={TEST_HISTORY_HEADER}
         data={data}

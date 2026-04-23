@@ -77,6 +77,7 @@ const Report = ({ testStat, antiCheatPayload, onRestart }: ReportProps) => {
               incorrectChars: testStat.incorrectChars,
               extraChars: testStat.extraChars,
               statsPerSecond: testStat.statsPerSecond,
+              characterStats: testStat.characterStats,
             },
             antiCheat: antiCheatPayload
               ? {

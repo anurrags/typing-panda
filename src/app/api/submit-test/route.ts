@@ -45,6 +45,7 @@ interface SubmitTestBody {
       errorRate: number;
       accuracy: number;
     }>;
+    characterStats?: Record<string, { correct: number; incorrect: number }>;
   };
   antiCheat: {
     token: string;
@@ -596,6 +597,7 @@ export async function POST(req: Request) {
         incorrectChars: testStats.incorrectChars,
         extraChars: testStats.extraChars,
         statsPerSecond: testStats.statsPerSecond,
+        characterStats: testStats.characterStats,
         antiCheatToken: antiCheat.token,
         keystrokeHash: antiCheat.keystrokeHash,
         antiCheatGeneratedAt: antiCheat.generatedAt,

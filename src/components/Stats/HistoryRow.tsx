@@ -9,12 +9,14 @@ const HistoryRow = (item: TestStats, index: number) => {
       key={item.testId}
       className={`text-grey-1 font-semibold transition-colors ${index % 2 === 0 ? "bg-dark-1" : "bg-grey-4"}`}
     >
-      <td className="text-cyan-3 px-6 py-4 text-sm font-bold whitespace-nowrap">
+      <td className="px-6 py-4 text-sm font-bold whitespace-nowrap text-blue-400">
         {item.meanWpm}
       </td>
       <td className="px-6 py-4 text-sm whitespace-nowrap">{item.accuracy}%</td>
       <td className="px-6 py-4 text-sm whitespace-nowrap">
-        {item.correctChars}/{item.incorrectChars}/{item.extraChars}
+        <span className="text-green-500">{item.correctChars}</span>/{" "}
+        <span className="text-red-500">{item.incorrectChars}</span>/{" "}
+        <span className="text-yellow-200">{item.extraChars}</span>
       </td>
       <td className="px-6 py-4 text-sm whitespace-nowrap">
         {item.testTypeValue} {item.testType === "time" ? "s" : "words"}

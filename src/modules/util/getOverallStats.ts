@@ -23,6 +23,7 @@ export const getOverallStats = (tests: TestStats[]): OverAllStats => {
       highestWpm: null,
       highestRawWpm: null,
       highestAccuracy: null,
+      overallCharacterStats: {},
     };
     return emptyStats;
   }
@@ -53,6 +54,11 @@ export const getOverallStats = (tests: TestStats[]): OverAllStats => {
   let twentyFiveWordsBest: PersonalBest | null = null;
   let fiftyWordsBest: PersonalBest | null = null;
   let hundredWordsBest: PersonalBest | null = null;
+
+  const overallCharacterStats: Record<
+    string,
+    { correct: number; incorrect: number }
+  > = {};
 
   for (const test of tests) {
     sumWpm += test.meanWpm;
@@ -110,6 +116,16 @@ export const getOverallStats = (tests: TestStats[]): OverAllStats => {
         "wpm",
       );
     }
+
+    if (test.characterStats) {
+      for (const [char, stats] of Object.entries(test.characterStats)) {
+        if (!overallCharacterStats[char]) {
+          overallCharacterStats[char] = { correct: 0, incorrect: 0 };
+        }
+        overallCharacterStats[char].correct += stats.correct;
+        overallCharacterStats[char].incorrect += stats.incorrect;
+      }
+    }
   }
 
   const averageWpm = Math.round(sumWpm / totalTests);
@@ -147,6 +163,7 @@ export const getOverallStats = (tests: TestStats[]): OverAllStats => {
     highestWpm,
     highestRawWpm,
     highestAccuracy,
+    overallCharacterStats,
   };
 };
 
