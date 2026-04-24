@@ -18,9 +18,47 @@ interface ProfileData {
   createdAt?: string;
 }
 
+const getValidAvatarUrl = async (authId: string, filename: string) => {
+  const cacheKey = `avatar_${authId}`;
+  const cachedData = localStorage.getItem(cacheKey);
+
+  if (cachedData) {
+    try {
+      const { url, expiresAt, storedFilename } = JSON.parse(cachedData);
+      // Check if not expired (with 1 hour buffer) and filename hasn't changed
+      if (storedFilename === filename && expiresAt > Date.now() + 3600000) {
+        return url;
+      }
+    } catch {
+      // ignore parse error
+    }
+  }
+
+  const filePath = `${authId}/${filename}`;
+  // 7 days expiration
+  const { data: signed } = await supabase.storage
+    .from("user-data")
+    .createSignedUrl(filePath, 60 * 60 * 24 * 7);
+
+  if (signed?.signedUrl) {
+    localStorage.setItem(
+      cacheKey,
+      JSON.stringify({
+        url: signed.signedUrl,
+        expiresAt: Date.now() + 60 * 60 * 24 * 7 * 1000,
+        storedFilename: filename,
+      }),
+    );
+    return signed.signedUrl;
+  }
+  return "";
+};
+
 const ProfilePage = () => {
   const auth = useAuth();
   const { showBanner } = useBannerStore();
+
+  const [avatarDisplayUrl, setAvatarDisplayUrl] = useState<string>("");
 
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -62,12 +100,20 @@ const ProfilePage = () => {
         }
 
         if (data) {
+          const avatarFilename = data.avatar || "";
+
+          if (avatarFilename) {
+            getValidAvatarUrl(auth.id, avatarFilename).then((url) => {
+              setAvatarDisplayUrl(url);
+            });
+          }
+
           const profileData = {
             firstName: data.firstName || "",
             lastName: data.lastName || "",
             username: data.username || "",
             country: data.country || "",
-            avatar: data.avatar || "",
+            avatar: avatarFilename,
             phone: data.phone || "",
             nickname: data.nickname || "",
             createdAt: auth.created_at,
@@ -187,15 +233,16 @@ const ProfilePage = () => {
 
       if (uploadError) throw uploadError;
 
-      const { data: signed } = await supabase.storage
-        .from("user-data")
-        .createSignedUrl(filePath, 60 * 60);
+      // Invalidate cache to force getting the new image
+      localStorage.removeItem(`avatar_${auth.id}`);
+      const newUrl = await getValidAvatarUrl(auth.id, fileName);
 
-      if (!signed?.signedUrl) {
+      if (!newUrl) {
         throw new Error("Failed to create signed URL");
       }
 
-      setEditForm((prev) => ({ ...prev, avatar: signed.signedUrl }));
+      setAvatarDisplayUrl(newUrl);
+      setEditForm((prev) => ({ ...prev, avatar: fileName }));
       showBanner("Avatar uploaded successfully!", "success", 3000);
     } catch (error: unknown) {
       const errorMessage =
@@ -288,7 +335,7 @@ const ProfilePage = () => {
             >
               <img
                 src={
-                  (editing ? editForm.avatar : profile.avatar) ||
+                  avatarDisplayUrl ||
                   `https://ui-avatars.com/api/?name=${
                     profile.firstName || profile.username || "User"
                   }&background=2d2f35&color=6ee7b7`
