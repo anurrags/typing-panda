@@ -30,9 +30,18 @@ const typeStyles: Record<string, { gradient: string; emoji: string }> = {
 };
 
 const Banner = () => {
-  const { text, type, time, hideBanner } = useBannerStore();
+  const { text, type, time, showCloseButton, hideBanner } = useBannerStore();
   const [visible, setVisible] = useState(false);
   const [exiting, setExiting] = useState(false);
+
+  const handleClose = () => {
+    setExiting(true);
+    setTimeout(() => {
+      hideBanner();
+      setVisible(false);
+      setExiting(false);
+    }, 300);
+  };
 
   useEffect(() => {
     if (text) {
@@ -62,12 +71,36 @@ const Banner = () => {
 
   return (
     <div
-      className={`${baseStyles} ${gradient} ${animationClass}`}
+      className={`${baseStyles} ${gradient} ${animationClass} gap-3`}
       role="alert"
       aria-live="assertive"
     >
-      <span className="mr-2 text-xl">{emoji}</span>
-      <span>{text}</span>
+      <div className="flex items-center justify-center">
+        <span className="mr-2 text-xl">{emoji}</span>
+        <span>{text}</span>
+      </div>
+      {showCloseButton && (
+        <button
+          onClick={handleClose}
+          className="ml-2 flex-shrink-0 text-black/60 transition-colors hover:text-black focus:outline-none"
+          aria-label="Close"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      )}
     </div>
   );
 };

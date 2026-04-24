@@ -122,7 +122,7 @@ const ProfilePage = () => {
           setEditForm(profileData);
         }
       } catch {
-        showBanner("Failed to load profile data", "error", 5000);
+        showBanner("Failed to load profile data", "error", 5000, true);
       } finally {
         setLoading(false);
       }
@@ -177,7 +177,12 @@ const ProfilePage = () => {
       }
 
       if (changedFields.phone && changedFields.phone.length !== 10) {
-        showBanner("Phone number must be exactly 10 digits", "error", 5000);
+        showBanner(
+          "Phone number must be exactly 10 digits",
+          "error",
+          5000,
+          true,
+        );
         setSaving(false);
         return;
       }
@@ -202,10 +207,13 @@ const ProfilePage = () => {
       setProfile({ ...editForm });
       setEditing(false);
       showBanner("Profile updated successfully!", "success", 5000);
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to update profile";
-      showBanner(errorMessage, "error", 5000);
+    } catch {
+      showBanner(
+        "Failed to save profile. Please try again.",
+        "error",
+        5000,
+        true,
+      );
     } finally {
       setSaving(false);
     }
@@ -244,10 +252,13 @@ const ProfilePage = () => {
       setAvatarDisplayUrl(newUrl);
       setEditForm((prev) => ({ ...prev, avatar: fileName }));
       showBanner("Avatar uploaded successfully!", "success", 3000);
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to upload avatar";
-      showBanner(errorMessage, "error", 5000);
+    } catch {
+      showBanner(
+        "Failed to upload avatar. Please try again.",
+        "error",
+        5000,
+        true,
+      );
     } finally {
       setUploading(false);
     }

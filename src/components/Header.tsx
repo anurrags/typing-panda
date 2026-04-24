@@ -62,7 +62,7 @@ const Header: React.FC = () => {
     closeDropdown();
     const { error } = await supabase.auth.signOut();
     if (error) {
-      showBanner(error.message, "error", 10000);
+      showBanner("Failed to log out. Please try again.", "error", 5000, true);
     } else {
       showBanner("You have been logged out successfully.", "success", 5000);
     }
