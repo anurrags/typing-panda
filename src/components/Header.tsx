@@ -2,20 +2,21 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 
 import ProfileImage from "@/assets/profile-white.svg";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/modules/hooks";
-import { useTabStore, useUserStore } from "@/store";
+import { useUserStore } from "@/store";
 import { useBannerStore } from "@/store/bannerStore";
 
 const Header: React.FC = () => {
+  const pathname = usePathname();
   const { showBanner } = useBannerStore();
   const setUser = useUserStore((state) => state.setUser);
   const firstName = useUserStore((state) => state.firstName);
   const nickname = useUserStore((state) => state.nickname);
-  const { tab, setTab } = useTabStore((state) => state);
   const [showProfileOptions, setShowProfileOptions] = useState(false);
   const [isDropdownLocked, setIsDropdownLocked] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -105,28 +106,25 @@ const Header: React.FC = () => {
           <div>
             <ul className="flex items-center gap-4 text-xl">
               <li
-                onClick={() => setTab("practice")}
                 className={`${
-                  tab === "practice" && "text-cyan-1"
+                  pathname === "/" ? "text-cyan-1" : ""
                 } hover:text-cyan-2 cursor-pointer`}
               >
                 <Link href="/">Practice</Link>
               </li>
               <li
-                onClick={() => setTab("leaderboard")}
                 className={`${
-                  tab === "leaderboard" && "text-cyan-1"
+                  pathname === "/leaderboard" ? "text-cyan-1" : ""
                 } hover:text-cyan-2 cursor-pointer`}
               >
                 <Link href="/leaderboard">Leaderboard</Link>
               </li>
               <li
                 className={`${
-                  tab === "about" && "text-cyan-1"
+                  pathname === "/about" ? "text-cyan-1" : ""
                 } hover:text-cyan-2 cursor-pointer`}
-                onClick={() => setTab("about")}
               >
-                About
+                <Link href="/about">About</Link>
               </li>
             </ul>
           </div>
@@ -148,7 +146,11 @@ const Header: React.FC = () => {
             }}
           >
             <ProfileImage
-              className="hover:stroke-cyan-2 h-6 w-6"
+              className={`h-6 w-6 rounded-full transition-colors ${
+                ["/profile", "/stats", "/settings"].includes(pathname)
+                  ? "stroke-cyan-1 outline-cyan-1 outline outline-2 outline-offset-4"
+                  : "hover:stroke-cyan-2"
+              }`}
               onClick={() => {
                 if (isDropdownLocked) {
                   closeDropdown();
