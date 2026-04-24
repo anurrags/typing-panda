@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import ProfileImage from "@/assets/profile-white.svg";
 import { supabase } from "@/lib/supabaseClient";
@@ -17,8 +17,36 @@ const Header: React.FC = () => {
   const nickname = useUserStore((state) => state.nickname);
   const { tab, setTab } = useTabStore((state) => state);
   const [showProfileOptions, setShowProfileOptions] = useState(false);
+  const [isDropdownLocked, setIsDropdownLocked] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const auth = useAuth();
+
+  const closeDropdown = () => {
+    setIsDropdownLocked(false);
+    setShowProfileOptions(false);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        closeDropdown();
+      }
+    };
+
+    if (isDropdownLocked) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isDropdownLocked]);
 
   useEffect(() => {
     const onScroll = () => {
@@ -31,6 +59,7 @@ const Header: React.FC = () => {
   }, []);
 
   async function logout() {
+    closeDropdown();
     const { error } = await supabase.auth.signOut();
     if (error) {
       showBanner(error.message, "error", 10000);
@@ -89,7 +118,7 @@ const Header: React.FC = () => {
                   tab === "leaderboard" && "text-cyan-1"
                 } hover:text-cyan-2 cursor-pointer`}
               >
-                Leaderboard
+                <Link href="/leaderboard">Leaderboard</Link>
               </li>
               <li
                 className={`${
@@ -109,17 +138,33 @@ const Header: React.FC = () => {
             </span>
           )}
           <div
+            ref={dropdownRef}
             className="relative cursor-pointer py-4"
             onMouseEnter={() => setShowProfileOptions(true)}
-            onMouseLeave={() => setShowProfileOptions(false)}
+            onMouseLeave={() => {
+              if (!isDropdownLocked) {
+                setShowProfileOptions(false);
+              }
+            }}
           >
-            <ProfileImage className="hover:stroke-cyan-2 h-6 w-6" />
+            <ProfileImage
+              className="hover:stroke-cyan-2 h-6 w-6"
+              onClick={() => {
+                if (isDropdownLocked) {
+                  closeDropdown();
+                } else {
+                  setIsDropdownLocked(true);
+                  setShowProfileOptions(true);
+                }
+              }}
+            />
             {showProfileOptions && (
               <div className="absolute top-12 right-0 z-10 mt-2 w-36 rounded-md border border-gray-700 bg-[#2d2f35] shadow-lg group-hover:block">
                 {auth ? (
                   <div>
                     <Link
                       href="/profile"
+                      onClick={closeDropdown}
                       className="flex items-center gap-3 rounded-t-md px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-emerald-500 hover:text-gray-900"
                     >
                       <svg
@@ -140,6 +185,7 @@ const Header: React.FC = () => {
                     </Link>
                     <Link
                       href="/stats"
+                      onClick={closeDropdown}
                       className="flex items-center gap-3 rounded-t-md px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-emerald-500 hover:text-gray-900"
                     >
                       <svg
@@ -162,6 +208,7 @@ const Header: React.FC = () => {
                     </Link>
                     <Link
                       href="/settings"
+                      onClick={closeDropdown}
                       className="flex items-center gap-3 px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-emerald-500 hover:text-gray-900"
                     >
                       <svg
@@ -207,6 +254,7 @@ const Header: React.FC = () => {
                   <div>
                     <Link
                       href={"/auth"}
+                      onClick={closeDropdown}
                       className="text-cyan-3 hover:bg-cyan-3 flex items-center gap-3 rounded-md p-2 text-sm transition-colors hover:text-white"
                     >
                       <svg
