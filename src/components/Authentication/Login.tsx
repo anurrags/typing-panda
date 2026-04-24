@@ -47,9 +47,11 @@ export default function Login() {
   const router = useRouter();
 
   const user = useAuth();
-  if (user) {
-    router.push("/");
-  }
+  useEffect(() => {
+    if (user) {
+      router.push("/");
+    }
+  }, [user, router]);
 
   const schema =
     mode === "login"
@@ -83,7 +85,7 @@ export default function Login() {
           password: data.password!,
         });
         if (error) {
-          showBanner(error.message, "error", 15000);
+          showBanner("Invalid email or password.", "error", 15000, true);
           return;
         }
         showBanner("You are Logged In successfully.", "success", 5000);
@@ -96,7 +98,12 @@ export default function Login() {
         });
 
         if (error) {
-          showBanner(error.message, "error", 15000);
+          showBanner(
+            "Failed to create account. Please check your details and try again.",
+            "error",
+            5000,
+            true,
+          );
           return;
         }
         if (signUpData?.user) {
@@ -112,20 +119,20 @@ export default function Login() {
           });
 
           if (!res.ok) {
-            const errorData = await res.json();
             showBanner(
-              errorData.error ||
-                "Failed to create profile. Please try signing up again.",
+              "Failed to create profile. Please try signing up again.",
               "error",
-              15000,
+              5000,
+              true,
             );
             return;
           }
         }
         showBanner(
-          "You are signed Up successfully. Please check your inbox for verification email.",
+          "Verification email sent! Please check your inbox to activate your account.",
           "success",
-          15000,
+          5000,
+          true,
         );
         setMode("login");
         reset();
@@ -137,7 +144,12 @@ export default function Login() {
           },
         );
         if (error) {
-          showBanner(error.message, "error", 15000);
+          showBanner(
+            "Failed to send reset link. Please try again.",
+            "error",
+            5000,
+            true,
+          );
           return;
         }
         showBanner("Password reset link sent to your email.", "success", 15000);

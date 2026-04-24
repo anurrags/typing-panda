@@ -47,7 +47,12 @@ export default function ResetPassword() {
       });
 
       if (error) {
-        showBanner(error.message, "error", 15000);
+        showBanner(
+          "Failed to reset password. The link might be invalid or expired.",
+          "error",
+          5000,
+          true,
+        );
         return;
       }
 

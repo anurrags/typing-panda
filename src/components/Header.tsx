@@ -2,23 +2,155 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import React, { useEffect, useRef, useState } from "react";
 
 import ProfileImage from "@/assets/profile-white.svg";
 import { supabase } from "@/lib/supabaseClient";
+import {
+  AUTHENTICATED_MENU_ITEMS,
+  type DropdownMenuItem,
+  LOGOUT_MENU_ITEM,
+  NAV_TABS,
+  PROFILE_ACTIVE_ROUTES,
+  UNAUTHENTICATED_MENU_ITEM,
+} from "@/modules/constants";
 import { useAuth } from "@/modules/hooks";
-import { useTabStore, useUserStore } from "@/store";
+import { getValidAvatarUrl } from "@/modules/util";
+import { useUserStore } from "@/store";
 import { useBannerStore } from "@/store/bannerStore";
 
+/**
+ * Renders an SVG icon from a compact path string.
+ * Path segments are separated by "@@". Segments containing " a" (arc commands
+ * used for circles) are rendered as <circle> elements; all others as <path>.
+ */
+const MenuIcon: React.FC<{ iconPath: string }> = ({ iconPath }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    {iconPath.split("@@").map((segment, i) => {
+      const s = segment.trim();
+      // Detect circle shorthand: "Mcx cy a..."
+      const circleMatch = s.match(
+        /^M([\d.]+)\s+([\d.]+)\s+a([\d.]+)\s+([\d.]+)/,
+      );
+      if (circleMatch) {
+        return (
+          <circle
+            key={i}
+            cx={circleMatch[1]}
+            cy={circleMatch[2]}
+            r={circleMatch[3]}
+          />
+        );
+      }
+      // Detect line shorthand: "Mx1 y1Lx2 y2"
+      const lineMatch = s.match(/^M([\d.]+)\s+([\d.]+)L([\d.]+)\s+([\d.]+)$/);
+      if (lineMatch) {
+        return (
+          <line
+            key={i}
+            x1={lineMatch[1]}
+            y1={lineMatch[2]}
+            x2={lineMatch[3]}
+            y2={lineMatch[4]}
+          />
+        );
+      }
+      return <path key={i} d={s} />;
+    })}
+  </svg>
+);
+
+/** A single item inside the profile dropdown menu. */
+const DropdownItem: React.FC<{
+  item: DropdownMenuItem;
+  onClick: () => void;
+  isFirst?: boolean;
+  isLast?: boolean;
+}> = ({ item, onClick, isFirst, isLast }) => {
+  const roundedClass = [isFirst && "rounded-t-md", isLast && "rounded-b-md"]
+    .filter(Boolean)
+    .join(" ");
+
+  const baseClass = `flex items-center gap-3 px-4 py-2 text-sm transition-colors ${roundedClass}`;
+
+  const colorClass =
+    item.variant === "danger"
+      ? "text-red-400 hover:bg-red-500 hover:text-white"
+      : item.href === "/auth"
+        ? "text-cyan-3 hover:bg-cyan-3 hover:text-white"
+        : "text-gray-300 hover:bg-emerald-500 hover:text-gray-900";
+
+  const className = `${baseClass} ${colorClass}`;
+
+  if (item.type === "link" && item.href) {
+    return (
+      <Link href={item.href} onClick={onClick} className={className}>
+        <MenuIcon iconPath={item.iconPath} />
+        <span>{item.label}</span>
+      </Link>
+    );
+  }
+
+  return (
+    <div onClick={onClick} className={`${className} cursor-pointer`}>
+      <MenuIcon iconPath={item.iconPath} />
+      <span>{item.label}</span>
+    </div>
+  );
+};
+
 const Header: React.FC = () => {
+  const pathname = usePathname();
   const { showBanner } = useBannerStore();
   const setUser = useUserStore((state) => state.setUser);
+  const setAvatarUrl = useUserStore((state) => state.setAvatarUrl);
   const firstName = useUserStore((state) => state.firstName);
   const nickname = useUserStore((state) => state.nickname);
-  const { tab, setTab } = useTabStore((state) => state);
+  const avatarUrl = useUserStore((state) => state.avatarUrl);
   const [showProfileOptions, setShowProfileOptions] = useState(false);
+  const [isDropdownLocked, setIsDropdownLocked] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const auth = useAuth();
+
+  const isProfileActive = PROFILE_ACTIVE_ROUTES.includes(pathname);
+
+  const closeDropdown = () => {
+    setIsDropdownLocked(false);
+    setShowProfileOptions(false);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        closeDropdown();
+      }
+    };
+
+    if (isDropdownLocked) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isDropdownLocked]);
 
   useEffect(() => {
     const onScroll = () => {
@@ -31,9 +163,10 @@ const Header: React.FC = () => {
   }, []);
 
   async function logout() {
+    closeDropdown();
     const { error } = await supabase.auth.signOut();
     if (error) {
-      showBanner(error.message, "error", 10000);
+      showBanner("Failed to log out. Please try again.", "error", 5000, true);
     } else {
       showBanner("You have been logged out successfully.", "success", 5000);
     }
@@ -44,20 +177,40 @@ const Header: React.FC = () => {
       if (auth) {
         const { data: profile } = await supabase
           .from("Profile")
-          .select("firstName, username, lastName, nickname")
+          .select("firstName, username, lastName, nickname, avatar")
           .eq("user_id", auth.id)
           .single();
-        if (profile)
+        if (profile) {
           setUser(
             profile.firstName,
             profile.lastName,
             profile.username,
             profile.nickname,
           );
+
+          // Fetch avatar signed URL if the user has one
+          if (profile.avatar) {
+            const url = await getValidAvatarUrl(auth.id, profile.avatar);
+            if (url) setAvatarUrl(url);
+          }
+        }
       }
     };
     fetchUserProfile();
-  }, [auth, setUser]);
+  }, [auth, setUser, setAvatarUrl]);
+
+  const dropdownItems: DropdownMenuItem[] = auth
+    ? AUTHENTICATED_MENU_ITEMS
+    : [UNAUTHENTICATED_MENU_ITEM];
+
+  const handleProfileIconClick = () => {
+    if (isDropdownLocked) {
+      closeDropdown();
+    } else {
+      setIsDropdownLocked(true);
+      setShowProfileOptions(true);
+    }
+  };
 
   return (
     <div
@@ -73,34 +226,20 @@ const Header: React.FC = () => {
             <Image src="/panda.svg" alt="icon" width={32} height={32} />
             <h1 className="text-2xl font-bold">Typing Panda</h1>
           </Link>
-          <div>
+          <nav>
             <ul className="flex items-center gap-4 text-xl">
-              <li
-                onClick={() => setTab("practice")}
-                className={`${
-                  tab === "practice" && "text-cyan-1"
-                } hover:text-cyan-2 cursor-pointer`}
-              >
-                <Link href="/">Practice</Link>
-              </li>
-              <li
-                onClick={() => setTab("leaderboard")}
-                className={`${
-                  tab === "leaderboard" && "text-cyan-1"
-                } hover:text-cyan-2 cursor-pointer`}
-              >
-                Leaderboard
-              </li>
-              <li
-                className={`${
-                  tab === "about" && "text-cyan-1"
-                } hover:text-cyan-2 cursor-pointer`}
-                onClick={() => setTab("about")}
-              >
-                About
-              </li>
+              {NAV_TABS.map((tab) => (
+                <li
+                  key={tab.href}
+                  className={`${
+                    pathname === tab.href ? "text-cyan-1" : ""
+                  } hover:text-cyan-2 cursor-pointer`}
+                >
+                  <Link href={tab.href}>{tab.label}</Link>
+                </li>
+              ))}
             </ul>
-          </div>
+          </nav>
         </div>
         <div className="flex items-center gap-4">
           {auth && (nickname || firstName) && (
@@ -109,128 +248,59 @@ const Header: React.FC = () => {
             </span>
           )}
           <div
+            ref={dropdownRef}
             className="relative cursor-pointer py-4"
             onMouseEnter={() => setShowProfileOptions(true)}
-            onMouseLeave={() => setShowProfileOptions(false)}
+            onMouseLeave={() => {
+              if (!isDropdownLocked) {
+                setShowProfileOptions(false);
+              }
+            }}
           >
-            <ProfileImage className="hover:stroke-cyan-2 h-6 w-6" />
+            {auth && avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt="Profile"
+                className={`h-8 w-8 rounded-full object-cover outline outline-2 outline-offset-2 transition-all ${
+                  isProfileActive
+                    ? "outline-cyan-1"
+                    : "hover:outline-cyan-2 outline-white"
+                }`}
+                onClick={handleProfileIconClick}
+              />
+            ) : (
+              <ProfileImage
+                className={`h-6 w-6 rounded-full transition-colors ${
+                  isProfileActive
+                    ? "stroke-cyan-1 outline-cyan-1 outline outline-2 outline-offset-4"
+                    : "hover:stroke-cyan-2"
+                }`}
+                onClick={handleProfileIconClick}
+              />
+            )}
             {showProfileOptions && (
               <div className="absolute top-12 right-0 z-10 mt-2 w-36 rounded-md border border-gray-700 bg-[#2d2f35] shadow-lg group-hover:block">
-                {auth ? (
-                  <div>
-                    <Link
-                      href="/profile"
-                      className="flex items-center gap-3 rounded-t-md px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-emerald-500 hover:text-gray-900"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
-                      <span>Profile</span>
-                    </Link>
-                    <Link
-                      href="/stats"
-                      className="flex items-center gap-3 rounded-t-md px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-emerald-500 hover:text-gray-900"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      >
-                        <line x1="4" y1="21" x2="4" y2="10" />
-                        <line x1="12" y1="21" x2="12" y2="4" />
-                        <line x1="20" y1="21" x2="20" y2="14" />
-                      </svg>
-
-                      <span>Stats</span>
-                    </Link>
-                    <Link
-                      href="/settings"
-                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-emerald-500 hover:text-gray-900"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                      <span>Settings</span>
-                    </Link>
-                    <div className="my-1 border-t border-gray-700"></div>
-                    <div
-                      className="flex items-center gap-3 rounded-b-md px-4 py-2 text-sm text-red-400 transition-colors hover:bg-red-500 hover:text-white"
-                      onClick={logout}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                        <polyline points="16 17 21 12 16 7" />
-                        <line x1="21" y1="12" x2="9" y2="12" />
-                      </svg>
-                      <span>Logout</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <Link
-                      href={"/auth"}
-                      className="text-cyan-3 hover:bg-cyan-3 flex items-center gap-3 rounded-md p-2 text-sm transition-colors hover:text-white"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M9 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H9" />
-
-                        <path d="M13 12H5" />
-
-                        <path d="M10 7l5 5-5 5" />
-                      </svg>
-
-                      <span>Log In</span>
-                    </Link>
-                  </div>
-                )}
+                <div>
+                  {dropdownItems.map((item, idx) => (
+                    <DropdownItem
+                      key={item.label}
+                      item={item}
+                      onClick={item.type === "action" ? logout : closeDropdown}
+                      isFirst={idx === 0}
+                      isLast={!auth || idx === dropdownItems.length - 1}
+                    />
+                  ))}
+                  {auth && (
+                    <>
+                      <div className="my-1 border-t border-gray-700" />
+                      <DropdownItem
+                        item={LOGOUT_MENU_ITEM}
+                        onClick={logout}
+                        isLast
+                      />
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>

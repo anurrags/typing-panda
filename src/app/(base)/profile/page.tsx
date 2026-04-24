@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { countries } from "@/constants/countries";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/modules/hooks";
+import { getValidAvatarUrl } from "@/modules/util";
 import { useBannerStore } from "@/store/bannerStore";
 
 interface ProfileData {
@@ -21,6 +22,8 @@ interface ProfileData {
 const ProfilePage = () => {
   const auth = useAuth();
   const { showBanner } = useBannerStore();
+
+  const [avatarDisplayUrl, setAvatarDisplayUrl] = useState<string>("");
 
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -62,12 +65,20 @@ const ProfilePage = () => {
         }
 
         if (data) {
+          const avatarFilename = data.avatar || "";
+
+          if (avatarFilename) {
+            getValidAvatarUrl(auth.id, avatarFilename).then((url) => {
+              setAvatarDisplayUrl(url);
+            });
+          }
+
           const profileData = {
             firstName: data.firstName || "",
             lastName: data.lastName || "",
             username: data.username || "",
             country: data.country || "",
-            avatar: data.avatar || "",
+            avatar: avatarFilename,
             phone: data.phone || "",
             nickname: data.nickname || "",
             createdAt: auth.created_at,
@@ -76,7 +87,7 @@ const ProfilePage = () => {
           setEditForm(profileData);
         }
       } catch {
-        showBanner("Failed to load profile data", "error", 5000);
+        showBanner("Failed to load profile data", "error", 5000, true);
       } finally {
         setLoading(false);
       }
@@ -131,7 +142,12 @@ const ProfilePage = () => {
       }
 
       if (changedFields.phone && changedFields.phone.length !== 10) {
-        showBanner("Phone number must be exactly 10 digits", "error", 5000);
+        showBanner(
+          "Phone number must be exactly 10 digits",
+          "error",
+          5000,
+          true,
+        );
         setSaving(false);
         return;
       }
@@ -156,10 +172,13 @@ const ProfilePage = () => {
       setProfile({ ...editForm });
       setEditing(false);
       showBanner("Profile updated successfully!", "success", 5000);
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to update profile";
-      showBanner(errorMessage, "error", 5000);
+    } catch {
+      showBanner(
+        "Failed to save profile. Please try again.",
+        "error",
+        5000,
+        true,
+      );
     } finally {
       setSaving(false);
     }
@@ -187,20 +206,24 @@ const ProfilePage = () => {
 
       if (uploadError) throw uploadError;
 
-      const { data: signed } = await supabase.storage
-        .from("user-data")
-        .createSignedUrl(filePath, 60 * 60);
+      // Invalidate cache to force getting the new image
+      localStorage.removeItem(`avatar_${auth.id}`);
+      const newUrl = await getValidAvatarUrl(auth.id, fileName);
 
-      if (!signed?.signedUrl) {
+      if (!newUrl) {
         throw new Error("Failed to create signed URL");
       }
 
-      setEditForm((prev) => ({ ...prev, avatar: signed.signedUrl }));
+      setAvatarDisplayUrl(newUrl);
+      setEditForm((prev) => ({ ...prev, avatar: fileName }));
       showBanner("Avatar uploaded successfully!", "success", 3000);
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to upload avatar";
-      showBanner(errorMessage, "error", 5000);
+    } catch {
+      showBanner(
+        "Failed to upload avatar. Please try again.",
+        "error",
+        5000,
+        true,
+      );
     } finally {
       setUploading(false);
     }
@@ -288,7 +311,7 @@ const ProfilePage = () => {
             >
               <img
                 src={
-                  (editing ? editForm.avatar : profile.avatar) ||
+                  avatarDisplayUrl ||
                   `https://ui-avatars.com/api/?name=${
                     profile.firstName || profile.username || "User"
                   }&background=2d2f35&color=6ee7b7`

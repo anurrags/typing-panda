@@ -159,21 +159,33 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
   // Timer management
   useEffect(() => {
     if (testStarted && !testEnded) {
-      if (testDuration.type === "time") {
-        countdownIntervalRef.current = setInterval(() => {
-          setCountdown((prev) => prev - 1);
-        }, 1000);
-      }
+      const startMs = Date.now();
+      let lastSecondLogged = 0;
 
       intervalRef.current = setInterval(() => {
-        setTime((prev) => {
-          const newTime = prev + 1;
-          if (testDuration.type === "time" && newTime >= testDuration.value) {
-            setTestEnded(true);
+        const elapsedMs = Date.now() - startMs;
+        const elapsedSec = Math.floor(elapsedMs / 1000);
+
+        if (elapsedSec > lastSecondLogged) {
+          const secondsToAdvance = elapsedSec - lastSecondLogged;
+          if (testDuration.type === "time") {
+            setCountdown((prev) => Math.max(0, prev - secondsToAdvance));
           }
-          return newTime;
-        });
-      }, 1000);
+          setTime(elapsedSec);
+          lastSecondLogged = elapsedSec;
+        }
+
+        if (
+          testDuration.type === "time" &&
+          elapsedMs >= testDuration.value * 1000
+        ) {
+          if (lastSecondLogged < testDuration.value) {
+            setTime(testDuration.value);
+            setCountdown(0);
+          }
+          setTestEnded(true);
+        }
+      }, 100); // High-frequency check for real-time accuracy
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -186,12 +198,9 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
     }
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-      if (countdownIntervalRef.current) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (countdownIntervalRef.current)
         clearInterval(countdownIntervalRef.current);
-      }
     };
   }, [testStarted, testEnded, testDuration]);
 
@@ -278,18 +287,45 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
       let correctChars = 0;
       let incorrectChars = 0;
       let extraChars = 0;
+      const characterStats: Record<
+        string,
+        { correct: number; incorrect: number }
+      > = {};
+
       for (let i = 0; i < userInput.length; i++) {
         for (let j = 0; j < userInput[i].length; j++) {
           if (j >= testState.wordsArray[i].length) {
             extraChars++;
-          } else if (
-            userInput[i].charAt(j) === testState.wordsArray[i].charAt(j)
-          ) {
-            correctChars++;
           } else {
-            incorrectChars++;
+            const targetChar = testState.wordsArray[i].charAt(j);
+            if (!characterStats[targetChar]) {
+              characterStats[targetChar] = { correct: 0, incorrect: 0 };
+            }
+
+            if (userInput[i].charAt(j) === targetChar) {
+              correctChars++;
+              characterStats[targetChar].correct++;
+            } else {
+              incorrectChars++;
+              characterStats[targetChar].incorrect++;
+            }
           }
           charsTyped++;
+        }
+
+        // If the user moved to the next word, any untyped characters in the current word are considered missed (incorrect)
+        if (i < userInput.length - 1) {
+          for (
+            let j = userInput[i].length;
+            j < testState.wordsArray[i].length;
+            j++
+          ) {
+            const targetChar = testState.wordsArray[i].charAt(j);
+            if (!characterStats[targetChar]) {
+              characterStats[targetChar] = { correct: 0, incorrect: 0 };
+            }
+            characterStats[targetChar].incorrect++;
+          }
         }
       }
 
@@ -322,8 +358,8 @@ const TypingTest = ({ onTestComplete }: TypingTestProps) => {
         incorrectChars: incorrectChars,
         extraChars: extraChars,
         testDate: new Date(),
-        // Use the synchronous ref to guarantee the final second is included
         statsPerSecond: [...statsPerSecondRef.current],
+        characterStats: characterStats,
       };
 
       setTestStats(finalStats);

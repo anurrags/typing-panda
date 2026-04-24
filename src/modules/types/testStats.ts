@@ -1,4 +1,11 @@
 export type TestType = "words" | "time";
+export type CharacterStats = {
+  [key: string]: {
+    correct: number;
+    incorrect: number;
+  };
+};
+
 export type TestStats = {
   testId: string;
   testType: TestType;
@@ -12,6 +19,7 @@ export type TestStats = {
   incorrectChars: number;
   extraChars: number;
   statsPerSecond: StatsPerSecond[];
+  characterStats?: CharacterStats;
   created_at: string;
 };
 
@@ -42,6 +50,7 @@ export type OverAllStats = {
   highestWpm: PersonalBest | null;
   highestRawWpm: PersonalBest | null;
   highestAccuracy: PersonalBest | null;
+  overallCharacterStats: CharacterStats;
 };
 
 export type PersonalBest = {
